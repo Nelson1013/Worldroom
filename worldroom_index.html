@@ -88,15 +88,29 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .qr { display: flex; gap: 12px; align-items: center; }
 .qr canvas { width: 96px; height: 96px; aspect-ratio: 1; border-radius: 6px; background: #fff; }
 .qr input { min-width: 0; width: 260px; max-width: 100%; }
-.banner {
-  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-  width: min(92%, 560px); background: color-mix(in srgb, var(--night) 88%, transparent);
-  border: 1px solid var(--gold); border-radius: 10px; padding: 12px 16px; text-align: center;
+.zoomctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 6px; }
+.zoomctl button { padding: 6px 11px; min-width: 36px; font-size: 0.9rem; background: color-mix(in srgb, var(--night) 85%, transparent); color: var(--ink); border: 1px solid var(--line); }
+@keyframes wave { 0%, 100% { transform: skewY(-3deg); } 50% { transform: skewY(3deg) translateY(-1px); } }
+.float .fh img, .note .w img { height: 0.95em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.05em; transform-origin: left center; animation: wave 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .float .fh img, .note .w img { animation: none; } }
+.floaters { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.float {
+  position: absolute; bottom: 8px; max-width: 40%; padding: 8px 12px; border-radius: 12px; opacity: 0;
+  background: color-mix(in srgb, var(--night) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  animation: rise 8s ease-out forwards;
 }
-.banner .w { font-family: var(--display); font-size: clamp(1.4rem, 3vw, 2.2rem); color: var(--gold); line-height: 1.1; }
-.banner img { height: 1em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.1em; border: 1px solid rgba(255,255,255,0.3); }
-.note .w img { height: 0.9em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.05em; border: 1px solid rgba(255,255,255,0.3); }
-.banner .m { color: var(--ink-2); font-size: 0.95rem; overflow-wrap: anywhere; }
+.float .fh { font-size: 0.8rem; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+.float .fh img { height: 0.95em; width: auto; border-radius: 2px; }
+.float .fg { font-family: var(--display); font-size: clamp(1rem, 1.8vw, 1.5rem); color: var(--gold); overflow-wrap: anywhere; line-height: 1.2; }
+@keyframes rise {
+  0% { opacity: 0; transform: translateY(24px); }
+  10% { opacity: 1; transform: translateY(0); }
+  65% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(calc(-1 * var(--rise, 200px))); }
+}
+@keyframes fadeonly { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .float { animation: fadeonly 6s forwards; } }
 .closing {
   position: fixed; inset: 0; z-index: 20; background: var(--night);
   display: grid; place-content: center; gap: 22px; text-align: center;
@@ -115,7 +129,7 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 <!-- JOIN -->
 <main id="view-join" class="wrap" hidden>
   <header style="display:grid;gap:12px">
-    <p class="eyebrow">Nigeria welcomes the world</p>
+    <p class="eyebrow">Loveworld Kingdom welcomes you</p>
     <h1>World in One Room</h1>
     <p class="lede">Put your country on the map. It lights up on the big screen the moment you join.</p>
   </header>
@@ -138,12 +152,14 @@ body[data-view="screen"] { padding-block: 14px 14px; }
     <div id="joined" hidden style="display:grid;gap:12px">
       <p class="hello" id="joined-hello"></p>
       <p id="joined-msg">You are on the map. Look for your pin on the big screen.</p>
-      <div><button type="button" class="ghost" id="edit-pin">Change my greeting</button></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap"><button type="button" id="ping-btn">Ping the map</button><button type="button" class="ghost" id="edit-pin">Change my greeting</button></div>
     </div>
   </section>
 
   <section style="display:grid;gap:12px">
-    <div class="map-box"><canvas id="map-join" aria-label="World map with delegate pins"></canvas></div>
+    <div class="map-box"><canvas id="map-join" aria-label="World map with delegate pins"></canvas>
+      <div class="zoomctl" data-map="join"><button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">−</button><button type="button" data-z="me" id="me-btn" hidden>Me</button><button type="button" data-z="reset">Reset</button></div></div>
+    <p class="muted">Pinch, scroll or double-tap to zoom. Tap a pin to focus on it.</p>
     <div class="stat" id="stat-join"></div>
     <p class="muted" id="live-note"></p>
   </section>
@@ -154,17 +170,15 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 <main id="view-screen" class="screen" hidden>
   <div class="screen-top">
     <div style="display:grid;gap:4px">
-      <p class="eyebrow">Nigeria welcomes the world</p>
+      <p class="eyebrow">Loveworld Kingdom welcomes you</p>
       <h1>World in One Room</h1>
     </div>
     <div class="stat" id="stat-screen"></div>
   </div>
   <div class="map-box">
     <canvas id="map-screen" aria-label="Live world map"></canvas>
-    <div class="banner" id="banner" hidden>
-      <div class="w"><img id="banner-flag" alt=""><span id="banner-w"></span></div>
-      <div class="m" id="banner-m"></div>
-    </div>
+    <div class="zoomctl" data-map="screen"><button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">−</button><button type="button" data-z="reset">Reset</button></div>
+    <div class="floaters" id="floaters"></div>
   </div>
   <div class="screen-foot">
     <div class="qr" id="qr-box">
@@ -328,6 +342,8 @@ window.SUPABASE_CONFIG = {
   fillSelect($("f-country"), "Choose your country");
   fillSelect($("h-country"), "Choose a country");
 
+  var PINGS = {}, chan = null;
+
   /* ---------- flags ---------- */
   var FLAGS = {};
   function flagUrl(cc) { return "https://flagcdn.com/w80/" + String(cc).toLowerCase() + ".png"; }
@@ -343,84 +359,251 @@ window.SUPABASE_CONFIG = {
   }
 
   /* ---------- map drawing ---------- */
-  function makeMap(canvas, withLabels) {
-    var ctx = canvas.getContext("2d"), W = 0, H = 0, dpr = 1, landLayer = null;
-    function px(lon, lat) { return [(lon + 180) / 360 * W, (LAT_TOP - lat) / LAT_SPAN * H]; }
-    function build() {
-      var r = canvas.getBoundingClientRect();
-      if (!r.width) return false;
+  /* ---------- pin layout: neat spiral per country so every delegate has their own spot ---------- */
+  var POS = {}, GROUPS = {};
+  function layout() {
+    POS = {}; GROUPS = {};
+    var by = {};
+    pins.forEach(function (p) { if (CO[p.cc]) (by[p.cc] = by[p.cc] || []).push(p); });
+    Object.keys(by).forEach(function (cc) {
+      var a = by[cc].sort(function (x, y) { return (x.at - y.at) || (x.id < y.id ? -1 : 1); });
+      var n = a.length, c = CO[cc], sp = Math.min(0.9, 5 / Math.sqrt(n));
+      a.forEach(function (p, i) {
+        var r = sp * Math.sqrt(i), th = i * 2.399963;
+        POS[p.id] = [c.lon + Math.cos(th) * r, c.lat + Math.sin(th) * r];
+      });
+      GROUPS[cc] = { n: n, c: c };
+    });
+  }
+
+  /* ---------- map with zoom and pan ---------- */
+  function makeMap(canvas, opts) {
+    var ctx = canvas.getContext("2d"), W = 0, H = 0, dpr = 1, MAXK = 32;
+    var V = { cx: 0.5, cy: 0.5, k: 1 }, anim = null;
+    var DX = [], DY = [], landColor = "#1f3d31", shown = [], touchMode = "";
+    function size(r) {
       dpr = Math.min(2, window.devicePixelRatio || 1);
       W = r.width; H = r.height;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-      landLayer = document.createElement("canvas");
-      landLayer.width = canvas.width; landLayer.height = canvas.height;
-      var c = landLayer.getContext("2d"); c.scale(dpr, dpr);
-      c.fillStyle = css("--land");
-      var rad = Math.max(1, STEP / 360 * W * 0.36);
-      for (var i = 0; i < DOTS.length; i++) {
-        var p = px(DOTS[i][0], DOTS[i][1]);
-        c.beginPath(); c.arc(p[0], p[1], rad, 0, 6.2832); c.fill();
-      }
-      return true;
+      DX = []; DY = [];
+      for (var i = 0; i < DOTS.length; i++) { DX.push((DOTS[i][0] + 180) / 360 * W); DY.push((LAT_TOP - DOTS[i][1]) / LAT_SPAN * H); }
+      landColor = css("--land");
     }
-    function frame(now) {
-      if (!landLayer || Math.abs(canvas.getBoundingClientRect().width - W) > 1) { if (!build()) return; }
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(landLayer, 0, 0);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var gold = css("--gold"), ink = css("--ink");
-      var groups = {}, order = [];
-      var sorted = pins.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
-      sorted.forEach(function (pin) {
-        var c = CO[pin.cc]; if (!c) return;
-        var h = hash(pin.id), ang = (h % 360) * Math.PI / 180, rr = ((h >> 9) % 100) / 100 * 1.8;
-        var lon = c.lon + Math.cos(ang) * rr * 1.2, lat = c.lat + Math.sin(ang) * rr;
-        if (!groups[pin.cc]) { groups[pin.cc] = { n: 0, c: c }; order.push(pin.cc); }
-        groups[pin.cc].n++;
-        var p = px(lon, lat), age = Date.now() - (pin.at || 0);
-        var g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], W / 60);
-        g.addColorStop(0, "rgba(244,194,91,0.85)"); g.addColorStop(1, "rgba(244,194,91,0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], W / 60, 0, 6.2832); ctx.fill();
-        ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(p[0], p[1], Math.max(2, W / 330), 0, 6.2832); ctx.fill();
-        if (!reduced && age >= 0 && age < 5000) {
-          var t = age / 5000;
-          ctx.strokeStyle = "rgba(244,194,91," + (0.9 * (1 - t)).toFixed(3) + ")";
-          ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], W / 140 + t * W / 18, 0, 6.2832); ctx.stroke();
+    function bx(lon) { return (lon + 180) / 360 * W; }
+    function by(lat) { return (LAT_TOP - lat) / LAT_SPAN * H; }
+    function clampV() { var h = 0.5 / V.k; V.cx = Math.min(Math.max(V.cx, h), 1 - h); V.cy = Math.min(Math.max(V.cy, h), 1 - h); }
+    function scr(x, y) { return [(x - V.cx * W) * V.k + W / 2, (y - V.cy * H) * V.k + H / 2]; }
+    function zoomAt(px, py, ratio) {
+      var nk = Math.min(MAXK, Math.max(1, V.k * ratio)); if (nk === V.k) return;
+      var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * H + (py - H / 2) / V.k;
+      V.k = nk; V.cx = (x - (px - W / 2) / nk) / W; V.cy = (y - (py - H / 2) / nk) / H; clampV();
+    }
+    function animateTo(cx, cy, k) {
+      anim = { t0: performance.now(), dur: 450, a: { cx: V.cx, cy: V.cy, k: V.k }, b: { cx: cx, cy: cy, k: Math.min(MAXK, Math.max(1, k)) } };
+    }
+    function focusPin(id, k) { var pos = POS[id]; if (pos) animateTo(bx(pos[0]) / W, by(pos[1]) / H, k); }
+
+    function drawFlag(cc, x, y, w, h, t) {
+      var fi = flagImg(cc);
+      if (fi.complete && fi.naturalWidth) {
+        if (reduced) {
+          ctx.drawImage(fi, x, y, w, h);
+          ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+          return;
         }
+        var ph = (hash(cc) % 628) / 100, n = Math.max(6, Math.round(w / 2.5)), sw = fi.naturalWidth / n, dw = w / n;
+        for (var i = 0; i < n; i++) {
+          var u = i / (n - 1), a = t / 330 + i * 0.75 + ph, wv = Math.sin(a), off = wv * h * 0.09 * (0.25 + 0.75 * u);
+          ctx.drawImage(fi, sw * i, 0, sw, fi.naturalHeight, x + dw * i, y + off, dw + 0.7, h);
+          ctx.fillStyle = "rgba(0,0,0," + (0.14 * (0.5 + 0.5 * wv)).toFixed(3) + ")";
+          ctx.fillRect(x + dw * i, y + off, dw + 0.7, h);
+        }
+      } else if (fi.complete) {
+        ctx.fillStyle = css("--ink"); ctx.fillText(cc, x, y + h / 2);
+      }
+    }
+
+    function frame() {
+      var r = canvas.getBoundingClientRect();
+      if (!r.width) return;
+      if (!W || Math.abs(r.width - W) > 0.5) size(r);
+      if (anim) {
+        var u = Math.min(1, (performance.now() - anim.t0) / anim.dur), e = 1 - Math.pow(1 - u, 3);
+        V.k = Math.exp(Math.log(anim.a.k) + (Math.log(anim.b.k) - Math.log(anim.a.k)) * e);
+        V.cx = anim.a.cx + (anim.b.cx - anim.a.cx) * e; V.cy = anim.a.cy + (anim.b.cy - anim.a.cy) * e;
+        clampV(); if (u >= 1) anim = null;
+      }
+      var mode = (opts.screen || V.k > 1.001) ? "none" : "pan-y";
+      if (mode !== touchMode) { canvas.style.touchAction = mode; touchMode = mode; }
+      var k = V.k, T = Date.now();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      // land
+      var rad = Math.max(1, STEP / 360 * W * 0.36) * Math.min(k, 2.4), cx0 = V.cx * W, cy0 = V.cy * H;
+      ctx.fillStyle = landColor; ctx.beginPath();
+      for (var i = 0; i < DX.length; i++) {
+        var sx = (DX[i] - cx0) * k + W / 2; if (sx < -8 || sx > W + 8) continue;
+        var sy = (DY[i] - cy0) * k + H / 2; if (sy < -8 || sy > H + 8) continue;
+        ctx.moveTo(sx + rad, sy); ctx.arc(sx, sy, rad, 0, 6.2832);
+      }
+      ctx.fill();
+
+      // pins
+      shown = [];
+      var zoomed = k > 3, latest = {};
+      pins.forEach(function (pin) {
+        var pos = POS[pin.id]; if (!pos) return;
+        var s = scr(bx(pos[0]), by(pos[1]));
+        if (!latest[pin.cc] || pin.at > latest[pin.cc]) latest[pin.cc] = pin.at;
+        if (s[0] < -60 || s[0] > W + 60 || s[1] < -60 || s[1] > H + 60) return;
+        var h = hash(pin.id), age = T - (pin.at || 0), mine = !!(myPin && pin.id === myPin.id);
+        var gr = W / 60 * (zoomed ? 0.6 : 1), dens = (!mine && GROUPS[pin.cc]) ? Math.max(1, Math.sqrt(GROUPS[pin.cc].n / 2)) : 1;
+        var g = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], gr);
+        g.addColorStop(0, "rgba(244,194,91," + (0.85 / dens).toFixed(3) + ")"); g.addColorStop(1, "rgba(244,194,91,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s[0], s[1], gr, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = css("--gold"); ctx.beginPath(); ctx.arc(s[0], s[1], Math.max(2, W / 330) * (zoomed ? 1.5 : 1), 0, 6.2832); ctx.fill();
+        if (mine) {
+          ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(s[0], s[1], Math.max(5, W / 170) * (zoomed ? 1.4 : 1), 0, 6.2832); ctx.stroke();
+        }
+        if (!reduced) {
+          var per = mine ? 1400 : 3800, ph = ((T + (h % per)) % per) / per, maxR = zoomed ? Math.min(W / 32, 24) : W / 32;
+          ctx.strokeStyle = "rgba(244,194,91," + ((mine ? 0.75 : 0.5) / dens * (1 - ph)).toFixed(3) + ")";
+          ctx.lineWidth = mine ? 2 : 1.5;
+          ctx.beginPath(); ctx.arc(s[0], s[1], W / 200 + ph * maxR * (mine ? 1.15 : 1), 0, 6.2832); ctx.stroke();
+          var pa = PINGS[pin.id];
+          if (pa) {
+            var pt = (T - pa) / 4000;
+            if (pt >= 0 && pt < 1) {
+              for (var q2 = 0; q2 < 2; q2++) {
+                var q = pt - q2 * 0.18;
+                if (q > 0 && q < 1) {
+                  ctx.strokeStyle = "rgba(244,194,91," + (0.95 * (1 - q)).toFixed(3) + ")";
+                  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + q * W / 10, 0, 6.2832); ctx.stroke();
+                }
+              }
+            }
+          }
+          if (age >= 0 && age < 5000) {
+            var t5 = age / 5000;
+            ctx.strokeStyle = "rgba(244,194,91," + (0.9 * (1 - t5)).toFixed(3) + ")";
+            ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + t5 * W / 18, 0, 6.2832); ctx.stroke();
+          }
+        }
+        shown.push({ pin: pin, s: s, mine: mine });
       });
-      if (withLabels) {
-        var fs = Math.max(9, W / 120), boxes = [];
-        ctx.font = "600 " + fs + "px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle";
-        order.sort(function (a, b) { return (b === "NG") - (a === "NG"); });
-        order.forEach(function (cc) {
-          var g = groups[cc], p = px(g.c.lon, g.c.lat);
-          var txt = g.c.name + (g.n > 1 ? " · " + g.n : "");
-          var fw = fs * 1.5, fh = fs * 1.05, gap = fs * 0.4;
-          var w = fw + gap + ctx.measureText(txt).width, x = p[0] + W / 150, y = p[1] - fs * 0.9;
-          if (x + w > W - 4) x = p[0] - W / 150 - w;
-          var b = [x - 2, y - fs / 2, x + w + 2, y + fs / 2];
-          for (var i = 0; i < boxes.length; i++) {
-            var q = boxes[i];
-            if (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1]) return;
-          }
-          boxes.push(b);
-          var fi = flagImg(cc);
-          if (fi.complete && fi.naturalWidth) {
-            ctx.drawImage(fi, x, y - fh / 2, fw, fh);
-            ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(x, y - fh / 2, fw, fh);
-          }
-          ctx.fillStyle = ink; ctx.fillText(txt, x + fw + gap, y);
+
+      // labels: flag only per country when zoomed out, flag and name per delegate when zoomed in
+      var fs = Math.max(9, W / 120), fw = fs * 1.9, fh = fs * 1.3, gap = fs * 0.4, boxes = [], ink = css("--ink");
+      ctx.font = "600 " + fs + "px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+      function place(cc, sx, sy, txt, strong) {
+        if (sx < -80 || sx > W + 80 || sy < -40 || sy > H + 40) return;
+        var w = fw + (txt ? gap + ctx.measureText(txt).width : 0), x = sx + W / 150, y = sy - fs * 0.9;
+        if (x + w > W - 4) x = sx - W / 150 - w;
+        var b = [x - 2, y - fh / 2 - 1, x + w + 2, y + fh / 2 + 1];
+        for (var i2 = 0; i2 < boxes.length; i2++) {
+          var qb = boxes[i2];
+          if (b[0] < qb[2] && b[2] > qb[0] && b[1] < qb[3] && b[3] > qb[1]) return;
+        }
+        boxes.push(b);
+        drawFlag(cc, x, y - fh / 2, fw, fh, T);
+        if (txt) { ctx.fillStyle = strong ? css("--gold") : ink; ctx.fillText(txt, x + fw + gap, y); }
+      }
+      if (!zoomed) {
+        var codes = Object.keys(GROUPS).sort(function (a, b2) {
+          if (a === "NG") return -1; if (b2 === "NG") return 1;
+          return (latest[b2] || 0) - (latest[a] || 0);
+        });
+        codes.forEach(function (cc) {
+          var g2 = GROUPS[cc], s2 = scr(bx(g2.c.lon), by(g2.c.lat));
+          place(cc, s2[0], s2[1], g2.n > 1 ? "× " + g2.n : "", false);
+        });
+      } else {
+        shown.slice().sort(function (a, b2) { return (b2.mine - a.mine) || (b2.pin.at - a.pin.at); }).forEach(function (o) {
+          var nm = o.pin.name.length > 16 ? o.pin.name.slice(0, 15) + "…" : o.pin.name;
+          place(o.pin.cc, o.s[0], o.s[1], o.mine ? "You · " + nm : nm, o.mine);
         });
       }
     }
-    return { frame: frame, rebuild: function () { landLayer = null; } };
+
+    // ----- gestures -----
+    var ptrs = {}, pinchD = 0, moved = false, lastTap = 0;
+    function pcount() { return Object.keys(ptrs).length; }
+    function pdist() { var a = Object.keys(ptrs).map(function (id) { return ptrs[id]; }); return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+    function pmid() { var a = Object.keys(ptrs).map(function (id) { return ptrs[id]; }); return [(a[0].x + a[1].x) / 2, (a[0].y + a[1].y) / 2]; }
+    function hit(px, py) {
+      var best = null, bd = 26 * 26;
+      shown.forEach(function (o) { var dx = o.s[0] - px, dy = o.s[1] - py, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = o; } });
+      return best;
+    }
+    canvas.addEventListener("pointerdown", function (e) {
+      anim = null;
+      ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY };
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      if (pcount() === 1) moved = false;
+      if (pcount() === 2) { pinchD = pdist(); moved = true; }
+    });
+    canvas.addEventListener("pointermove", function (e) {
+      var p = ptrs[e.pointerId]; if (!p) return;
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 6) moved = true;
+      p.x = e.clientX; p.y = e.clientY;
+      if (pcount() === 1) {
+        if (V.k > 1.0001) { V.cx -= dx / (V.k * W); V.cy -= dy / (V.k * H); clampV(); }
+      } else if (pcount() === 2) {
+        var d = pdist(), m = pmid(), rr = canvas.getBoundingClientRect();
+        if (pinchD > 0) zoomAt(m[0] - rr.left, m[1] - rr.top, d / pinchD);
+        pinchD = d;
+      }
+    });
+    function up(e) {
+      var p = ptrs[e.pointerId]; if (!p) return;
+      delete ptrs[e.pointerId]; if (pcount() < 2) pinchD = 0;
+      if (e.type === "pointerup" && !moved && pcount() === 0) {
+        var rr = canvas.getBoundingClientRect(), px = e.clientX - rr.left, py = e.clientY - rr.top, h = hit(px, py);
+        if (h) { focusPin(h.pin.id, Math.max(V.k * 2.2, 8)); lastTap = 0; }
+        else {
+          var now = Date.now();
+          if (now - lastTap < 320) {
+            var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * H + (py - H / 2) / V.k;
+            animateTo(x / W, y / H, V.k * 2.4);
+          }
+          lastTap = now;
+        }
+      }
+    }
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", up);
+    canvas.addEventListener("wheel", function (e) {
+      if (!opts.screen && !e.ctrlKey && V.k <= 1.0001) return;
+      e.preventDefault(); anim = null;
+      var rr = canvas.getBoundingClientRect();
+      zoomAt(e.clientX - rr.left, e.clientY - rr.top, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)));
+    }, { passive: false });
+
+    return {
+      frame: frame,
+      rebuild: function () {},
+      zoomCenter: function (ratio) { anim = null; animateTo(V.cx, V.cy, V.k * ratio); },
+      reset: function () { animateTo(0.5, 0.5, 1); },
+      focusMe: function () { if (myPin) focusPin(myPin.id, 10); }
+    };
   }
-  var mapJoin = makeMap($("map-join"), false);
-  var mapScreen = makeMap($("map-screen"), true);
+  var mapJoin = makeMap($("map-join"), { screen: false });
+  var mapScreen = makeMap($("map-screen"), { screen: true });
+  function wireZoom(name, m) {
+    var box = document.querySelector('[data-map="' + name + '"]'); if (!box) return;
+    box.addEventListener("click", function (ev) {
+      var z = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-z");
+      if (z === "in") m.zoomCenter(2); else if (z === "out") m.zoomCenter(0.5);
+      else if (z === "reset") m.reset(); else if (z === "me") m.focusMe();
+    });
+  }
+  wireZoom("join", mapJoin); wireZoom("screen", mapScreen);
   var view = "join";
   function loop(now) {
-    if (!document.hidden) { (view === "screen" ? mapScreen : mapJoin).frame(now); }
+    if (!document.hidden) { (view === "screen" ? mapScreen : mapJoin).frame(); }
     requestAnimationFrame(loop);
   }
 
@@ -441,8 +624,9 @@ window.SUPABASE_CONFIG = {
     var nations = {}; pins.forEach(function (p) { if (CO[p.cc]) nations[p.cc] = 1; });
     target.textContent = "";
     var a = el("span"), b = el("span");
-    a.appendChild(el("b", null, String(Object.keys(nations).length))); a.appendChild(document.createTextNode("nations"));
-    b.appendChild(el("b", null, String(pins.length))); b.appendChild(document.createTextNode("delegates"));
+    var nc = Object.keys(nations).length;
+    a.appendChild(el("b", null, String(nc))); a.appendChild(document.createTextNode(nc === 1 ? "nation" : "nations"));
+    b.appendChild(el("b", null, String(pins.length))); b.appendChild(document.createTextNode(pins.length === 1 ? "delegate" : "delegates"));
     target.appendChild(a); target.appendChild(b);
     return Object.keys(nations);
   }
@@ -473,6 +657,7 @@ window.SUPABASE_CONFIG = {
 
   function render() {
     var nations = stats($("stat-join")); stats($("stat-screen"));
+    $("me-btn").hidden = !myPin;
     var joinedMode = !!myPin && !editing;
     $("join-form").hidden = joinedMode; $("joined").hidden = !joinedMode;
     if (joinedMode && CO[myPin.cc]) {
@@ -512,6 +697,14 @@ window.SUPABASE_CONFIG = {
       .catch(function (e) { setStatus("f-status", failText(e), true); })
       .then(function () { $("f-submit").disabled = false; });
   });
+  $("ping-btn").addEventListener("click", function () {
+    if (!myPin) return;
+    var b = this;
+    PINGS[myPin.id] = Date.now();
+    if (chan) { try { chan.send({ type: "broadcast", event: "ping", payload: { id: myPin.id } }); } catch (e) {} }
+    b.disabled = true; b.textContent = "Pinged!";
+    setTimeout(function () { b.disabled = false; b.textContent = "Ping the map"; }, 4000);
+  });
   $("edit-pin").addEventListener("click", function () {
     editing = true;
     if (myPin) { $("f-name").value = myPin.name; $("f-country").value = myPin.cc; $("f-greeting").value = myPin.greeting || ""; $("f-hello").textContent = CO[myPin.cc] ? CO[myPin.cc].w + "!" : ""; }
@@ -532,15 +725,17 @@ window.SUPABASE_CONFIG = {
   });
 
   /* ---------- screen extras ---------- */
-  var bannerTimer = null;
   function showBanner(p) {
     var c = CO[p.cc]; if (!c) return;
-    $("banner-w").textContent = c.w;
-    var bf = $("banner-flag"); bf.hidden = false; bf.onerror = function () { bf.hidden = true; }; bf.src = flagUrl(p.cc);
-    $("banner-m").textContent = p.name + " from " + c.name + (p.greeting ? " says “" + p.greeting + "”" : " has joined");
-    $("banner").hidden = false;
-    clearTimeout(bannerTimer);
-    bannerTimer = setTimeout(function () { $("banner").hidden = true; }, 7000);
+    var box = $("floaters"), r = box.getBoundingClientRect();
+    var d = el("div", "float"), head = el("div", "fh");
+    head.appendChild(flagEl(p.cc)); head.appendChild(el("span", null, p.name + " · " + c.name));
+    d.appendChild(head); d.appendChild(el("div", "fg", p.greeting ? p.greeting : c.w));
+    d.style.left = (3 + Math.random() * 52) + "%";
+    d.style.setProperty("--rise", Math.round(r.height * 0.8) + "px");
+    d.addEventListener("animationend", function () { d.remove(); });
+    box.appendChild(d);
+    while (box.children.length > 8) box.removeChild(box.firstChild);
   }
   function drawQR() {
     var url = JOIN_URL;
@@ -595,6 +790,7 @@ window.SUPABASE_CONFIG = {
         pins = (r.data || []).map(function (x) { return { id: x.id, name: String(x.name || "Guest").slice(0, 40), cc: x.cc, greeting: String(x.greeting || "").slice(0, 120), at: +x.at || 0 }; });
         var mine = lsGet("wr_pin");
         myPin = mine ? (pins.filter(function (p) { return p.id === mine; })[0] || null) : null;
+        layout();
         if (ready && view === "screen") pins.forEach(function (p) { if (!known[p.id]) showBanner(p); });
         ready = true; render();
       })
@@ -616,7 +812,13 @@ window.SUPABASE_CONFIG = {
     }
     sb = window.supabase.createClient(CFG.url, CFG.anonKey);
     load();
-    sb.channel("pins-live").on("postgres_changes", { event: "*", schema: "public", table: "pins" }, loadSoon).subscribe();
+    chan = sb.channel("pins-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pins" }, loadSoon)
+      .on("broadcast", { event: "ping" }, function (m) {
+        var id = m && m.payload && m.payload.id;
+        if (typeof id === "string" && id.length < 64) PINGS[id] = Date.now();
+      })
+      .subscribe();
     setInterval(load, 15000);
     var saved = lsGet("wr_host"); if (saved) checkHost(saved);
   }
