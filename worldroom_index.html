@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World in One Room</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one night-sky page, three views on the hash. Join (phones), screen (stage), wall (keepsake). */
+:root {
+  --night: #08130f;
+  --night-2: #0f1f19;
+  --line: #21402f;
+  --land: #1f3d31;
+  --ink: #eaf3ee;
+  --ink-2: #94ac9f;
+  --gold: #f4c25b;
+  --green: #3fd08f;
+  --danger: #ff9a8a;
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-weight: 800; font-size: clamp(2rem, 7vw, 3.4rem); line-height: 1.02; }
+h2 { font-weight: 600; font-size: 1.35rem; }
+p { margin: 0; }
+a { color: var(--green); }
+.wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 22px; }
+.eyebrow { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; }
+.lede { color: var(--ink-2); max-width: 46ch; }
+.muted { color: var(--ink-2); font-size: 0.9rem; }
+.map-box { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--night-2); overflow: hidden; }
+canvas { display: block; width: 100%; aspect-ratio: 360 / 142; max-width: 100%; }
+.stat { display: flex; gap: 18px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.stat b { font-family: var(--display); font-size: 1.6rem; color: var(--gold); font-weight: 800; margin-right: 6px; }
+
+/* form */
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--ink-2); font-weight: 500; }
+input, select, textarea {
+  font: inherit; color: var(--ink); background: var(--night-2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; width: 100%; min-width: 0;
+}
+textarea { min-height: 84px; resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button {
+  font: 600 1rem var(--body); cursor: pointer; border: 0; border-radius: 8px;
+  background: var(--gold); color: #1d1503; padding: 14px 18px;
+}
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 10px 14px; font-size: 0.9rem; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.hello { font-family: var(--display); font-size: 1.6rem; color: var(--gold); min-height: 1.4em; }
+.status { min-height: 1.3em; font-size: 0.9rem; color: var(--ink-2); }
+.status.err { color: var(--danger); }
+.card { border: 1px solid var(--line); border-radius: 10px; background: var(--night-2); padding: 18px; display: grid; gap: 12px; }
+.nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; }
+
+/* wall */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; color: var(--ink-2); }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.note { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--night-2); display: grid; gap: 6px; min-width: 0; }
+.note .w { font-family: var(--display); color: var(--gold); font-size: 1.2rem; }
+.note .g { overflow-wrap: anywhere; }
+.note .m { font-size: 0.8rem; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+.note button { padding: 2px 8px; font-size: 0.8rem; background: transparent; color: var(--danger); border: 1px solid var(--line); }
+
+/* screen */
+body[data-view="screen"] { padding-block: 14px 14px; }
+.screen { display: grid; gap: 12px; }
+.screen-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.screen-top h1 { font-size: clamp(1.8rem, 4vw, 3rem); }
+.screen .map-box { justify-self: center; width: min(100%, calc((100vh - 8.5rem) * 2.535)); }
+.screen-foot { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.qr { display: flex; gap: 12px; align-items: center; }
+.qr canvas { width: 96px; height: 96px; aspect-ratio: 1; border-radius: 6px; background: #fff; }
+.qr input { min-width: 0; width: 260px; max-width: 100%; }
+.banner {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  width: min(92%, 560px); background: color-mix(in srgb, var(--night) 88%, transparent);
+  border: 1px solid var(--gold); border-radius: 10px; padding: 12px 16px; text-align: center;
+}
+.banner .w { font-family: var(--display); font-size: clamp(1.4rem, 3vw, 2.2rem); color: var(--gold); line-height: 1.1; }
+.banner img { height: 1em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.1em; border: 1px solid rgba(255,255,255,0.3); }
+.note .w img { height: 0.9em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.05em; border: 1px solid rgba(255,255,255,0.3); }
+.banner .m { color: var(--ink-2); font-size: 0.95rem; overflow-wrap: anywhere; }
+.closing {
+  position: fixed; inset: 0; z-index: 20; background: var(--night);
+  display: grid; place-content: center; gap: 22px; text-align: center;
+  padding: 24px max(24px, env(safe-area-inset-left, 0px));
+}
+.closing h2 { font-size: clamp(2.2rem, 6vw, 4.6rem); font-weight: 800; color: var(--gold); }
+.closing p { max-width: 70ch; color: var(--ink-2); margin: 0 auto; }
+.host { max-width: 720px; }
+.row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+
+<!-- JOIN -->
+<main id="view-join" class="wrap" hidden>
+  <header style="display:grid;gap:12px">
+    <p class="eyebrow">Nigeria welcomes the world</p>
+    <h1>World in One Room</h1>
+    <p class="lede">Put your country on the map. It lights up on the big screen the moment you join.</p>
+  </header>
+
+  <section class="card" id="join-card">
+    <form id="join-form" autocomplete="off">
+      <label for="f-name">Your name
+        <input id="f-name" maxlength="40" required placeholder="e.g. Grace Mensah">
+      </label>
+      <label for="f-country">Your country
+        <select id="f-country" required></select>
+      </label>
+      <p class="hello" id="f-hello" aria-live="polite"></p>
+      <label for="f-greeting">A greeting for the room (optional)
+        <textarea id="f-greeting" maxlength="120" placeholder="Say hello, or share a blessing in your language"></textarea>
+      </label>
+      <button type="submit" id="f-submit">Drop my pin</button>
+      <p class="status" id="f-status" aria-live="polite"></p>
+    </form>
+    <div id="joined" hidden style="display:grid;gap:12px">
+      <p class="hello" id="joined-hello"></p>
+      <p id="joined-msg">You are on the map. Look for your pin on the big screen.</p>
+      <div><button type="button" class="ghost" id="edit-pin">Change my greeting</button></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:12px">
+    <div class="map-box"><canvas id="map-join" aria-label="World map with delegate pins"></canvas></div>
+    <div class="stat" id="stat-join"></div>
+    <p class="muted" id="live-note"></p>
+  </section>
+  <nav class="nav"><a href="#wall">See everyone who came</a><a href="#screen">Open the big screen</a></nav>
+</main>
+
+<!-- SCREEN -->
+<main id="view-screen" class="screen" hidden>
+  <div class="screen-top">
+    <div style="display:grid;gap:4px">
+      <p class="eyebrow">Nigeria welcomes the world</p>
+      <h1>World in One Room</h1>
+    </div>
+    <div class="stat" id="stat-screen"></div>
+  </div>
+  <div class="map-box">
+    <canvas id="map-screen" aria-label="Live world map"></canvas>
+    <div class="banner" id="banner" hidden>
+      <div class="w"><img id="banner-flag" alt=""><span id="banner-w"></span></div>
+      <div class="m" id="banner-m"></div>
+    </div>
+  </div>
+  <div class="screen-foot">
+    <div class="qr" id="qr-box">
+      <canvas id="qr" width="96" height="96" hidden></canvas>
+      <div style="display:grid;gap:6px">
+        <b id="qr-label" style="font-family:var(--display);font-size:1.3rem">Scan to join</b>
+        <input id="join-url" placeholder="Paste the join link to show its QR code" hidden>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button type="button" class="ghost" id="btn-full">Full screen</button>
+      <button type="button" class="ghost" id="btn-closing">Closing screen</button>
+      <input id="host-pin" type="password" placeholder="Host PIN" autocomplete="off" style="width:130px;padding:10px 12px;font-size:0.9rem">
+      <a class="muted" href="#">Join page</a>
+    </div>
+  </div>
+  <section class="card host" id="host" hidden>
+    <h2>Add a delegate</h2>
+    <p class="muted">For anyone who cannot use their phone. Only you see this panel.</p>
+    <form id="host-form" autocomplete="off">
+      <div class="row">
+        <label for="h-name">Name<input id="h-name" maxlength="40" required></label>
+        <label for="h-country">Country<select id="h-country" required></select></label>
+      </div>
+      <label for="h-greeting">Greeting (optional)<input id="h-greeting" maxlength="120"></label>
+      <button type="submit">Add to map</button>
+      <p class="status" id="h-status" aria-live="polite"></p>
+    </form>
+  </section>
+  <div class="closing" id="closing" hidden>
+    <p class="eyebrow">Thank you for coming</p>
+    <h2>Nigeria says thank you.</h2>
+    <p id="closing-nations"></p>
+    <div><button type="button" class="ghost" id="closing-back">Back to the map</button></div>
+  </div>
+</main>
+
+<!-- WALL -->
+<main id="view-wall" class="wrap" hidden>
+  <header style="display:grid;gap:12px">
+    <p class="eyebrow">Keepsake</p>
+    <h1>Everyone who came</h1>
+    <p class="lede" id="wall-lede">Every nation and greeting from the room, in one place to keep and share.</p>
+  </header>
+  <div class="chips" id="wall-chips"></div>
+  <div class="grid" id="wall-grid"></div>
+  <nav class="nav"><a href="#">Back to join</a></nav>
+</main>
+
+<script>
+/* Fill these two from Supabase: Project Settings > API */
+window.SUPABASE_CONFIG = {
+  url: "https://ufpydaqdjkomiibsbodt.supabase.co",
+  anonKey: "sb_publishable_lgzRgEId99orZVErlWcOfw_EX1SREi0"
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  "use strict";
+  var JOIN_URL = /^https?:/.test(location.protocol) ? location.href.split("#")[0] : "";
+
+  /* ---------- countries: code|name|lat|lon|welcome ---------- */
+  var RAW = [
+    "NG|Nigeria|9.1|8.7|Nnọọ","GH|Ghana|7.9|-1.0|Akwaaba","KE|Kenya|0.2|37.9|Karibu","TZ|Tanzania|-6.4|34.9|Karibu",
+    "UG|Uganda|1.4|32.3|Karibu","RW|Rwanda|-1.9|29.9|Murakaza neza","ZA|South Africa|-29|24|Siyakwamukela","ZW|Zimbabwe|-19|29.9|Mauya",
+    "ZM|Zambia|-13.1|27.8|Mwaiseni","MW|Malawi|-13.3|34.3|Takulandirani","BW|Botswana|-22.3|24.7|Rea go amogela","NA|Namibia|-22|17|Welcome",
+    "MZ|Mozambique|-18.7|35.5|Bem-vindo","AO|Angola|-11.2|17.9|Bem-vindo","MG|Madagascar|-19|47|Tonga soa","CM|Cameroon|5.7|12.7|Bienvenue",
+    "CI|Côte d'Ivoire|7.5|-5.5|Bienvenue","SN|Senegal|14.5|-14.5|Bienvenue","BJ|Benin|9.3|2.3|Bienvenue","TG|Togo|8.6|0.8|Bienvenue",
+    "CD|DR Congo|-2.9|23.7|Bienvenue","SL|Sierra Leone|8.5|-11.8|Welcome","LR|Liberia|6.4|-9.4|Welcome","ET|Ethiopia|9.1|40.5|እንኳን ደህና መጡ",
+    "SD|Sudan|15.6|30|مرحبا","EG|Egypt|26.8|30.8|أهلاً وسهلاً","MA|Morocco|31.8|-7.1|مرحبا",
+    "US|United States|39.8|-98.6|Welcome","CA|Canada|56|-106|Welcome","MX|Mexico|23.6|-102.5|Bienvenidos","BR|Brazil|-10|-52|Bem-vindo",
+    "AR|Argentina|-34|-64|Bienvenidos","CO|Colombia|4.6|-74.1|Bienvenidos","CL|Chile|-33|-71|Bienvenidos","PE|Peru|-9.2|-75|Bienvenidos",
+    "JM|Jamaica|18.1|-77.3|Welcome","TT|Trinidad and Tobago|10.5|-61.3|Welcome","HT|Haiti|18.9|-72.3|Byenvini",
+    "GB|United Kingdom|54|-2|Welcome","IE|Ireland|53|-8|Fáilte","FR|France|46.6|2.4|Bienvenue","DE|Germany|51.2|10.4|Willkommen",
+    "ES|Spain|40.4|-3.7|Bienvenidos","PT|Portugal|39.6|-8|Bem-vindo","IT|Italy|42.8|12.5|Benvenuti","NL|Netherlands|52.2|5.3|Welkom",
+    "BE|Belgium|50.6|4.7|Welkom","CH|Switzerland|46.8|8.2|Willkommen","AT|Austria|47.5|14.5|Willkommen","SE|Sweden|62|15|Välkommen",
+    "NO|Norway|61|9|Velkommen","DK|Denmark|56|10|Velkommen","FI|Finland|64|26|Tervetuloa","IS|Iceland|65|-18|Velkomin",
+    "PL|Poland|52|19|Witamy","CZ|Czechia|49.8|15.5|Vítejte","HU|Hungary|47|19.5|Isten hozott","RO|Romania|46|25|Bine ați venit",
+    "GR|Greece|39|22|Καλώς ήρθατε","UA|Ukraine|49|32|Ласкаво просимо","RU|Russia|61.5|100|Добро пожаловать","TR|Türkiye|39|35|Hoş geldiniz",
+    "IL|Israel|31|35|ברוכים הבאים","SA|Saudi Arabia|24|45|مرحبا","AE|United Arab Emirates|24|54|مرحبا","JO|Jordan|31|36.5|أهلاً وسهلاً",
+    "LB|Lebanon|33.9|35.9|أهلاً وسهلاً","IQ|Iraq|33|44|مرحبا","IR|Iran|32|53|خوش آمدید","KZ|Kazakhstan|48|67|Қош келдіңіз",
+    "IN|India|21|78|स्वागत है","PK|Pakistan|30|70|خوش آمدید","BD|Bangladesh|23.7|90.4|স্বাগতম","LK|Sri Lanka|7.9|80.7|Welcome",
+    "NP|Nepal|28|84|स्वागत छ","CN|China|35|103|欢迎","TW|Taiwan|23.7|121|歡迎","HK|Hong Kong|22.3|114.2|歡迎","JP|Japan|36|138|ようこそ",
+    "KR|South Korea|36.5|128|환영합니다","PH|Philippines|12.9|122|Maligayang pagdating","ID|Indonesia|-2.5|118|Selamat datang",
+    "MY|Malaysia|4|102|Selamat datang","SG|Singapore|1.35|103.8|Welcome","TH|Thailand|15|101|ยินดีต้อนรับ","VN|Vietnam|16|107.5|Chào mừng",
+    "AU|Australia|-25|134|Welcome","NZ|New Zealand|-41|174|Nau mai","PG|Papua New Guinea|-6.3|143.9|Welkam","FJ|Fiji|-17.7|178|Bula"
+  ];
+  var CO = {}, CODES = [];
+  RAW.forEach(function (s) {
+    var p = s.split("|");
+    CO[p[0]] = { code: p[0], name: p[1], lat: +p[2], lon: +p[3], w: p[4] };
+    CODES.push(p[0]);
+  });
+  CODES.sort(function (a, b) { return CO[a].name.localeCompare(CO[b].name); });
+
+  /* ---------- coarse land shapes (lon,lat) for the dot map ---------- */
+  var LAND = [
+    "-168,66 -162,70 -156,71 -141,70 -128,70 -115,68 -95,72 -85,70 -80,63 -94,59 -93,54 -82,53 -79,60 -77,62 -70,60 -64,58 -60,54 -56,52 -66,45 -70,42 -74,40 -76,35 -81,31 -80,26 -83,29 -90,30 -97,27 -97,22 -94,18 -90,21 -87,21 -88,16 -83,15 -83,10 -79,9 -77,8 -80,7 -85,10 -88,13 -92,15 -97,16 -105,20 -110,24 -114,31 -118,34 -121,35 -124,40 -124,47 -128,51 -133,56 -140,60 -148,60 -152,58 -158,56 -164,55 -158,59 -165,62",
+    "-73,78 -60,82 -30,83 -20,80 -20,70 -30,68 -43,60 -50,64 -55,70 -68,76",
+    "-77,8 -72,12 -62,10 -52,5 -50,0 -44,-2 -35,-6 -39,-14 -41,-22 -48,-26 -53,-34 -58,-38 -63,-41 -65,-47 -69,-52 -68,-55 -73,-52 -75,-45 -73,-37 -71,-30 -70,-18 -76,-14 -81,-5 -80,0 -78,3",
+    "-9,37 -9,43 -2,43.5 -1,46 -4.5,48.5 2,51 8,54 8,57 10,58 11,56 13,55 20,55 21,57 24,59 30,60 24,65 21,65 17,62 19,60 16,56 12,56 11,59 5,59 5,62 14,67 22,70 30,70 41,67 33,66 40,65 44,66 55,68 68,69 80,73 100,77 113,74 130,71 142,72 160,70 170,70 180,68 180,65 170,60 163,58 156,51 155,59 143,59 137,54 141,52 140,48 135,43 130,42 129,36 126,35 126,38 122,40 119,38 122,37 119,35 122,31 121,28 117,23 110,21 108,22 106,18 109,12 105,9 103,10 100,13 100,8 103,2 101,3 98,8 98,16 94,18 92,22 88,22 86,20 80,15 80,10 77,8 73,16 72,21 67,24 62,25 57,26 56,27 50,30 48,30 50,26 52,24 56,24 57,22 52,16 43,13 39,21 35,28 34,31 36,36 28,36.5 26,40 23,40 21,38 19,41 14,45 12,45 9,44 3,43 0,39 -5,36",
+    "-17,21 -13,28 -10,30 -6,36 0,36 10,37 11,33 20,32 25,32 32,31 34,28 38,22 43,12 51,12 46,5 41,-2 39,-6 40,-15 35,-20 33,-26 28,-33 20,-35 18,-32 14,-23 12,-17 13,-9 9,-1 9,4 5,6 -2,5 -8,4 -13,8 -17,14",
+    "12,44 14,42 18,40 16,38 15,38 12,42 9,44",
+    "-5,50 1,51 2,53 -2,56 -3,58.5 -6,58 -5,55 -3,54 -5,52",
+    "-10,52 -6,52 -6,55 -9,54",
+    "-24,64 -14,64 -14,66 -22,66",
+    "130,32 132,34 136,35 140,35.5 142,39 142,42 145,43.5 141.5,45.5 140,41 139,38 136,37 132,35.5 130,33.5",
+    "120,18 122,18 124,13 126,8 122,7 120,12",
+    "95,5 98,4 104,-2 106,-6 102,-4 96,0",
+    "105,-6 114,-7 114,-8.5 106,-7.5",
+    "109,1 111,2 117,7 119,5 116,-4 110,-3",
+    "119,0 125,1 121,-3 120,-5",
+    "131,-1 141,-3 150,-10 142,-9 138,-8 132,-4",
+    "114,-22 122,-18 130,-12 136,-12 136,-15 141,-12 143,-14 146,-19 153,-26 153,-30 150,-37 146,-39 140,-38 135,-35 131,-31 124,-33 115,-34 114,-26",
+    "172,-34 178,-38 175,-41 172,-41",
+    "172,-41 174,-42 170,-46 167,-46",
+    "44,-25 47,-25 50,-15 49,-12 44,-17",
+    "-85,22 -80,23 -74,20 -78,20",
+    "-74,19 -69,19 -69,18 -74,18",
+    "-80,73 -68,70 -62,66 -66,62 -75,65 -90,70",
+    "-118,72 -105,73 -100,69 -115,68",
+    "-90,80 -65,82 -62,80 -80,76",
+    "-59,48 -53,47 -53,51 -57,51"
+  ].map(function (s) {
+    return s.split(" ").map(function (p) { var q = p.split(","); return [+q[0], +q[1]]; });
+  });
+
+  function inPoly(x, y, p) {
+    var c = false;
+    for (var i = 0, j = p.length - 1; i < p.length; j = i++) {
+      var a = p[i], b = p[j];
+      if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c;
+    }
+    return c;
+  }
+  var LAT_TOP = 84, LAT_SPAN = 142, STEP = 2.4, DOTS = [];
+  for (var la = LAT_TOP - STEP / 2; la > LAT_TOP - LAT_SPAN; la -= STEP) {
+    for (var lo = -180 + STEP / 2; lo < 180; lo += STEP) {
+      for (var k = 0; k < LAND.length; k++) { if (inPoly(lo, la, LAND[k])) { DOTS.push([lo, la]); break; } }
+    }
+  }
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0); }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  var reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- state ---------- */
+  var pins = [];
+  var sb = null, isHost = false, hostPin = "", ready = false, myPin = null, editing = false;
+
+  function fillSelect(sel, placeholder) {
+    sel.textContent = "";
+    var o = el("option", null, placeholder); o.value = ""; sel.appendChild(o);
+    CODES.forEach(function (c) { var op = el("option", null, CO[c].name); op.value = c; sel.appendChild(op); });
+  }
+  fillSelect($("f-country"), "Choose your country");
+  fillSelect($("h-country"), "Choose a country");
+
+  /* ---------- flags ---------- */
+  var FLAGS = {};
+  function flagUrl(cc) { return "https://flagcdn.com/w80/" + String(cc).toLowerCase() + ".png"; }
+  function flagImg(cc) {
+    var f = FLAGS[cc];
+    if (!f) { f = FLAGS[cc] = new Image(); f.src = flagUrl(cc); }
+    return f;
+  }
+  function flagEl(cc, cls) {
+    var i = el("img", cls); i.alt = ""; i.src = flagUrl(cc);
+    i.addEventListener("error", function () { i.hidden = true; });
+    return i;
+  }
+
+  /* ---------- map drawing ---------- */
+  function makeMap(canvas, withLabels) {
+    var ctx = canvas.getContext("2d"), W = 0, H = 0, dpr = 1, landLayer = null;
+    function px(lon, lat) { return [(lon + 180) / 360 * W, (LAT_TOP - lat) / LAT_SPAN * H]; }
+    function build() {
+      var r = canvas.getBoundingClientRect();
+      if (!r.width) return false;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = r.width; H = r.height;
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      landLayer = document.createElement("canvas");
+      landLayer.width = canvas.width; landLayer.height = canvas.height;
+      var c = landLayer.getContext("2d"); c.scale(dpr, dpr);
+      c.fillStyle = css("--land");
+      var rad = Math.max(1, STEP / 360 * W * 0.36);
+      for (var i = 0; i < DOTS.length; i++) {
+        var p = px(DOTS[i][0], DOTS[i][1]);
+        c.beginPath(); c.arc(p[0], p[1], rad, 0, 6.2832); c.fill();
+      }
+      return true;
+    }
+    function frame(now) {
+      if (!landLayer || Math.abs(canvas.getBoundingClientRect().width - W) > 1) { if (!build()) return; }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(landLayer, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var gold = css("--gold"), ink = css("--ink");
+      var groups = {}, order = [];
+      var sorted = pins.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+      sorted.forEach(function (pin) {
+        var c = CO[pin.cc]; if (!c) return;
+        var h = hash(pin.id), ang = (h % 360) * Math.PI / 180, rr = ((h >> 9) % 100) / 100 * 1.8;
+        var lon = c.lon + Math.cos(ang) * rr * 1.2, lat = c.lat + Math.sin(ang) * rr;
+        if (!groups[pin.cc]) { groups[pin.cc] = { n: 0, c: c }; order.push(pin.cc); }
+        groups[pin.cc].n++;
+        var p = px(lon, lat), age = Date.now() - (pin.at || 0);
+        var g = ctx.createRadialGradient(p[0], p[1], 0, p[0], p[1], W / 60);
+        g.addColorStop(0, "rgba(244,194,91,0.85)"); g.addColorStop(1, "rgba(244,194,91,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p[0], p[1], W / 60, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = gold; ctx.beginPath(); ctx.arc(p[0], p[1], Math.max(2, W / 330), 0, 6.2832); ctx.fill();
+        if (!reduced && age >= 0 && age < 5000) {
+          var t = age / 5000;
+          ctx.strokeStyle = "rgba(244,194,91," + (0.9 * (1 - t)).toFixed(3) + ")";
+          ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], W / 140 + t * W / 18, 0, 6.2832); ctx.stroke();
+        }
+      });
+      if (withLabels) {
+        var fs = Math.max(9, W / 120), boxes = [];
+        ctx.font = "600 " + fs + "px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle";
+        order.sort(function (a, b) { return (b === "NG") - (a === "NG"); });
+        order.forEach(function (cc) {
+          var g = groups[cc], p = px(g.c.lon, g.c.lat);
+          var txt = g.c.name + (g.n > 1 ? " · " + g.n : "");
+          var fw = fs * 1.5, fh = fs * 1.05, gap = fs * 0.4;
+          var w = fw + gap + ctx.measureText(txt).width, x = p[0] + W / 150, y = p[1] - fs * 0.9;
+          if (x + w > W - 4) x = p[0] - W / 150 - w;
+          var b = [x - 2, y - fs / 2, x + w + 2, y + fs / 2];
+          for (var i = 0; i < boxes.length; i++) {
+            var q = boxes[i];
+            if (b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1]) return;
+          }
+          boxes.push(b);
+          var fi = flagImg(cc);
+          if (fi.complete && fi.naturalWidth) {
+            ctx.drawImage(fi, x, y - fh / 2, fw, fh);
+            ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(x, y - fh / 2, fw, fh);
+          }
+          ctx.fillStyle = ink; ctx.fillText(txt, x + fw + gap, y);
+        });
+      }
+    }
+    return { frame: frame, rebuild: function () { landLayer = null; } };
+  }
+  var mapJoin = makeMap($("map-join"), false);
+  var mapScreen = makeMap($("map-screen"), true);
+  var view = "join";
+  function loop(now) {
+    if (!document.hidden) { (view === "screen" ? mapScreen : mapJoin).frame(now); }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---------- views ---------- */
+  function route() {
+    var h = location.hash.replace("#", "");
+    view = (h === "screen" || h === "wall") ? h : "join";
+    $("view-join").hidden = view !== "join";
+    $("view-screen").hidden = view !== "screen";
+    $("view-wall").hidden = view !== "wall";
+    document.body.setAttribute("data-view", view);
+    if (view === "screen") { drawQR(); }
+    render();
+  }
+  window.addEventListener("hashchange", route);
+
+  function stats(target) {
+    var nations = {}; pins.forEach(function (p) { if (CO[p.cc]) nations[p.cc] = 1; });
+    target.textContent = "";
+    var a = el("span"), b = el("span");
+    a.appendChild(el("b", null, String(Object.keys(nations).length))); a.appendChild(document.createTextNode("nations"));
+    b.appendChild(el("b", null, String(pins.length))); b.appendChild(document.createTextNode("delegates"));
+    target.appendChild(a); target.appendChild(b);
+    return Object.keys(nations);
+  }
+
+  function renderWall() {
+    var grid = $("wall-grid"), chips = $("wall-chips");
+    grid.textContent = ""; chips.textContent = "";
+    var seen = {};
+    pins.forEach(function (p) { if (CO[p.cc]) seen[p.cc] = (seen[p.cc] || 0) + 1; });
+    Object.keys(seen).sort(function (a, b) { return CO[a].name.localeCompare(CO[b].name); }).forEach(function (c) {
+      chips.appendChild(el("span", "chip", CO[c].name + (seen[c] > 1 ? " · " + seen[c] : "")));
+    });
+    if (!pins.length) { grid.appendChild(el("p", "muted", "No one has joined yet. Greetings will appear here as delegates add their pins.")); return; }
+    pins.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); }).forEach(function (p) {
+      var c = CO[p.cc]; if (!c) return;
+      var n = el("article", "note");
+      var wl = el("div", "w"); wl.appendChild(flagEl(p.cc)); wl.appendChild(document.createTextNode(c.w)); n.appendChild(wl);
+      if (p.greeting) n.appendChild(el("div", "g", "“" + p.greeting + "”"));
+      var m = el("div", "m"); m.appendChild(el("span", null, p.name + " · " + c.name));
+      if (isHost && sb) {
+        var d = el("button", null, "Remove"); d.type = "button";
+        d.addEventListener("click", function () { sb.rpc("host_remove", { p_pin: hostPin, p_id: p.id }).then(function () { load(); }); });
+        m.appendChild(d);
+      }
+      n.appendChild(m); grid.appendChild(n);
+    });
+  }
+
+  function render() {
+    var nations = stats($("stat-join")); stats($("stat-screen"));
+    var joinedMode = !!myPin && !editing;
+    $("join-form").hidden = joinedMode; $("joined").hidden = !joinedMode;
+    if (joinedMode && CO[myPin.cc]) {
+      $("joined-hello").textContent = CO[myPin.cc].w + ", " + myPin.name;
+      $("joined-msg").textContent = "Your pin for " + CO[myPin.cc].name + " is on the map. Look for it on the big screen.";
+    }
+    $("closing-nations").textContent = nations.length
+      ? nations.map(function (c) { return CO[c].name; }).sort().join(" · ")
+      : "";
+    if (view === "wall") renderWall();
+  }
+
+  /* ---------- forms ---------- */
+  $("f-country").addEventListener("change", function () {
+    var c = CO[this.value];
+    $("f-hello").textContent = c ? c.w + "!" : "";
+  });
+  function setStatus(id, msg, err) { var s = $(id); s.textContent = msg; s.className = "status" + (err ? " err" : ""); }
+  function failText(e) {
+    var m = e && e.message ? String(e.message) : "";
+    if (/invalid/i.test(m)) return "Please check your name and country and try again.";
+    if (/host pin/i.test(m)) return "That host PIN is not right.";
+    return "Could not reach the map. Check your connection and try again.";
+  }
+  $("join-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!sb) { setStatus("f-status", "The live map is not set up yet. Tell the host your name and country.", true); return; }
+    var name = $("f-name").value.trim(), cc = $("f-country").value, g = $("f-greeting").value.trim();
+    if (!name || !CO[cc]) return;
+    $("f-submit").disabled = true; setStatus("f-status", "Dropping your pin…");
+    sb.rpc("join_map", { p_device: deviceId(), p_name: name, p_cc: cc, p_greeting: g })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        lsSet("wr_pin", r.data); editing = false; setStatus("f-status", "");
+        return load();
+      })
+      .catch(function (e) { setStatus("f-status", failText(e), true); })
+      .then(function () { $("f-submit").disabled = false; });
+  });
+  $("edit-pin").addEventListener("click", function () {
+    editing = true;
+    if (myPin) { $("f-name").value = myPin.name; $("f-country").value = myPin.cc; $("f-greeting").value = myPin.greeting || ""; $("f-hello").textContent = CO[myPin.cc] ? CO[myPin.cc].w + "!" : ""; }
+    render();
+  });
+  $("host-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!sb || !isHost) return;
+    var name = $("h-name").value.trim(), cc = $("h-country").value, g = $("h-greeting").value.trim();
+    if (!name || !CO[cc]) return;
+    setStatus("h-status", "Adding…");
+    sb.rpc("host_add", { p_pin: hostPin, p_name: name, p_cc: cc, p_greeting: g })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        setStatus("h-status", name + " added."); $("h-name").value = ""; $("h-greeting").value = ""; return load();
+      })
+      .catch(function (e) { setStatus("h-status", failText(e), true); });
+  });
+
+  /* ---------- screen extras ---------- */
+  var bannerTimer = null;
+  function showBanner(p) {
+    var c = CO[p.cc]; if (!c) return;
+    $("banner-w").textContent = c.w;
+    var bf = $("banner-flag"); bf.hidden = false; bf.onerror = function () { bf.hidden = true; }; bf.src = flagUrl(p.cc);
+    $("banner-m").textContent = p.name + " from " + c.name + (p.greeting ? " says “" + p.greeting + "”" : " has joined");
+    $("banner").hidden = false;
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(function () { $("banner").hidden = true; }, 7000);
+  }
+  function drawQR() {
+    var url = JOIN_URL;
+    try { url = url || localStorage.getItem("joinUrl") || ""; } catch (e) {}
+    var cv = $("qr"), inp = $("join-url");
+    if (!url || typeof qrcode !== "function") {
+      cv.hidden = true; inp.hidden = false; $("qr-label").textContent = "Join link"; return;
+    }
+    try {
+      var q = qrcode(0, "M"); q.addData(url); q.make();
+      var n = q.getModuleCount(), m = 2, s = Math.floor(96 / (n + m * 2)) || 1, size = s * (n + m * 2);
+      cv.width = size; cv.height = size; var c = cv.getContext("2d");
+      c.fillStyle = "#fff"; c.fillRect(0, 0, size, size); c.fillStyle = "#08130f";
+      for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) c.fillRect((k + m) * s, (r + m) * s, s, s);
+      cv.hidden = false; inp.hidden = true; $("qr-label").textContent = "Scan to join";
+    } catch (e) { cv.hidden = true; inp.hidden = false; }
+  }
+  $("join-url").addEventListener("change", function () {
+    try { localStorage.setItem("joinUrl", this.value.trim()); } catch (e) {}
+    drawQR();
+  });
+  $("btn-full").addEventListener("click", function () {
+    var e = document.documentElement;
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (e.requestFullscreen) { e.requestFullscreen().catch(function () {}); }
+  });
+  $("btn-closing").addEventListener("click", function () { $("closing").hidden = false; });
+  $("closing-back").addEventListener("click", function () { $("closing").hidden = true; });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") $("closing").hidden = true; });
+  window.addEventListener("resize", function () { mapJoin.rebuild(); mapScreen.rebuild(); });
+
+  /* ---------- live data (Supabase) ---------- */
+  var CFG = window.SUPABASE_CONFIG || {};
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function deviceId() {
+    var d = lsGet("wr_device");
+    if (!d) {
+      try { var a = new Uint8Array(20); crypto.getRandomValues(a); d = Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+      catch (e) { d = "d" + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2) + "000000"; }
+      lsSet("wr_device", d);
+    }
+    return d;
+  }
+  function noteLive(msg) { $("live-note").textContent = msg || ""; }
+  function load() {
+    return sb.from("pins").select("id,name,cc,greeting,at").order("at", { ascending: false }).limit(1000)
+      .then(function (r) {
+        if (r.error) { noteLive("Could not reach the live map. Retrying."); return; }
+        noteLive("");
+        var known = {}; pins.forEach(function (p) { known[p.id] = 1; });
+        pins = (r.data || []).map(function (x) { return { id: x.id, name: String(x.name || "Guest").slice(0, 40), cc: x.cc, greeting: String(x.greeting || "").slice(0, 120), at: +x.at || 0 }; });
+        var mine = lsGet("wr_pin");
+        myPin = mine ? (pins.filter(function (p) { return p.id === mine; })[0] || null) : null;
+        if (ready && view === "screen") pins.forEach(function (p) { if (!known[p.id]) showBanner(p); });
+        ready = true; render();
+      })
+      .catch(function () { noteLive("Could not reach the live map. Retrying."); });
+  }
+  var loadTimer = null;
+  function loadSoon() { clearTimeout(loadTimer); loadTimer = setTimeout(load, 400); }
+  function checkHost(pin) {
+    sb.rpc("host_check", { p_pin: pin }).then(function (r) {
+      if (r.data === true) { isHost = true; hostPin = pin; lsSet("wr_host", pin); $("host").hidden = false; render(); }
+      else { lsSet("wr_host", ""); }
+    });
+  }
+  $("host-pin").addEventListener("change", function () { if (sb && this.value) checkHost(this.value.trim()); });
+  function connect() {
+    if (!window.supabase || !CFG.url || !CFG.anonKey) {
+      noteLive("The live map is not set up yet. Add the Supabase details at the top of this page.");
+      return;
+    }
+    sb = window.supabase.createClient(CFG.url, CFG.anonKey);
+    load();
+    sb.channel("pins-live").on("postgres_changes", { event: "*", schema: "public", table: "pins" }, loadSoon).subscribe();
+    setInterval(load, 15000);
+    var saved = lsGet("wr_host"); if (saved) checkHost(saved);
+  }
+
+    route();
+  requestAnimationFrame(loop);
+  connect();
+})();
+</script>
+
+</body>
+</html>
