@@ -89,8 +89,6 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .qr { display: flex; gap: 12px; align-items: center; }
 .qr canvas { width: 96px; height: 96px; aspect-ratio: 1; border-radius: 6px; background: #fff; }
 .qr input { min-width: 0; width: 260px; max-width: 100%; }
-.zoomctl { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 6px; }
-.zoomctl button { padding: 6px 11px; min-width: 36px; font-size: 0.9rem; background: color-mix(in srgb, var(--night) 85%, transparent); color: var(--ink); border: 1px solid var(--line); }
 @keyframes wave { 0%, 100% { transform: skewY(-3deg); } 50% { transform: skewY(3deg) translateY(-1px); } }
 .float .fh img, .note .w img { height: 0.95em; width: auto; border-radius: 2px; margin-right: 0.4em; vertical-align: -0.05em; transform-origin: left center; animation: wave 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .float .fh img, .note .w img { animation: none; } }
@@ -103,6 +101,18 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 }
 .float .fh { font-size: 0.8rem; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
 .float .fh img { height: 0.95em; width: auto; border-radius: 2px; }
+.float .fh img.av, .note .w img.av { height: 1.9em; width: 1.9em; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold); margin: 0 0.5em 0 0; animation: none; }
+.photo-pick { display: flex; gap: 14px; align-items: center; }
+.photo-pick img, .photo-pick .av-ph { width: 64px; height: 64px; flex: none; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); background: var(--night); }
+.photo-pick .av-ph { display: grid; place-content: center; font-size: 1.6rem; color: var(--ink-2); }
+.flag-prev { width: min(100%, 240px); border-radius: 6px; border: 1px solid var(--line); }
+.map-full { position: absolute; top: 8px; right: 8px; z-index: 3; padding: 6px 10px; font-size: 0.8rem; background: color-mix(in srgb, var(--night) 72%, transparent); }
+.imm-only { display: none; }
+.screen.immersive { position: fixed; inset: 0; z-index: 15; background: var(--night); display: block; padding: 0; }
+.screen.immersive .screen-top, .screen.immersive .screen-foot { display: none; }
+.screen.immersive .map-box { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
+.screen.immersive canvas#map-screen { width: 100%; height: 100%; aspect-ratio: auto; }
+.screen.immersive .imm-only { display: flex; position: absolute; left: 14px; top: 12px; z-index: 3; gap: 16px; padding: 6px 12px; border-radius: 10px; background: color-mix(in srgb, var(--night) 72%, transparent); }
 .float .fg { font-family: var(--display); font-size: clamp(1rem, 1.8vw, 1.5rem); color: var(--gold); overflow-wrap: anywhere; line-height: 1.2; }
 @keyframes rise {
   0% { opacity: 0; transform: translateY(24px); }
@@ -119,7 +129,22 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 }
 .closing h2 { font-size: clamp(2.2rem, 6vw, 4.6rem); font-weight: 800; color: var(--gold); }
 .closing p { max-width: 70ch; color: var(--ink-2); margin: 0 auto; }
-.host { max-width: 720px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 1rem; }
+.toggle input { width: 24px; height: 24px; flex: none; accent-color: var(--gold); padding: 0; }
+.arow { display: grid; gap: 8px; grid-template-columns: 120px 1fr 1fr auto; align-items: center; }
+@media (max-width: 680px) { .arow { grid-template-columns: 1fr; padding-bottom: 10px; border-bottom: 1px solid var(--line); } }
+.dlist .d { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.dlist .d img { height: 1em; width: auto; border-radius: 2px; flex: none; }
+.dlist .d .n { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dlist .d button { padding: 4px 10px; font-size: 0.8rem; background: transparent; color: var(--danger); border: 1px solid var(--line); }
+.prow { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.prow .pt { color: var(--gold); font-variant-numeric: tabular-nums; }
+details summary { cursor: pointer; color: var(--green); font-weight: 600; }
+#admin-bar { position: sticky; top: 0; z-index: 20; display: grid; gap: 8px; padding: 12px; background: var(--bg, #0a1612); border: 1px solid var(--line, rgba(255,255,255,.14)); border-radius: 14px; }
+#admin-bar .row { display: flex; gap: 8px; flex-wrap: wrap; }
+#admin-bar .row button { flex: 1 1 140px; }
+#admin-bar .status { min-height: 0; margin: 0; }
+button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -130,12 +155,20 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 <!-- JOIN -->
 <main id="view-join" class="wrap" hidden>
   <header style="display:grid;gap:12px">
-    <p class="eyebrow">Loveworld Kingdom welcomes you</p>
-    <h1>World in One Room</h1>
+    <p class="eyebrow" id="e-join">Loveworld Kingdom welcomes you</p>
+    <h1 id="t-join">World in One Room</h1>
     <p class="lede">Put your country on the map. It lights up on the big screen the moment you join.</p>
   </header>
 
+  <section class="card" id="event-card" hidden>
+    <h2 id="ev-name"></h2>
+    <p class="muted" id="ev-meta"></p>
+    <p id="ev-notes"></p>
+    <details id="ev-prog-wrap"><summary>Programme</summary><div id="ev-prog"></div></details>
+  </section>
+
   <section class="card" id="join-card">
+    <p id="closed-note" hidden>Joining is closed right now. Please ask the host if you would like to be added.</p>
     <form id="join-form" autocomplete="off">
       <label for="f-name">Your name
         <input id="f-name" maxlength="40" required placeholder="e.g. Grace Mensah">
@@ -144,6 +177,16 @@ body[data-view="screen"] { padding-block: 14px 14px; }
         <select id="f-country" required></select>
       </label>
       <p class="hello" id="f-hello" aria-live="polite"></p>
+      <div class="photo-pick" id="photo-pick">
+        <img id="f-photo-prev" alt="" hidden>
+        <div class="av-ph" id="f-photo-ph" aria-hidden="true">+</div>
+        <div style="display:grid;gap:6px;min-width:0">
+          <b>Your photo (optional)</b>
+          <span class="muted">It shows beside your flag on the map.</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="ghost" id="f-photo-btn">Choose a photo</button><button type="button" class="ghost" id="f-photo-rm" hidden>Remove</button></div>
+        </div>
+        <input type="file" id="f-photo" accept="image/*" hidden>
+      </div>
       <label for="f-greeting">A greeting for the room (optional)
         <textarea id="f-greeting" maxlength="120" placeholder="Say hello, or share a blessing in your language"></textarea>
       </label>
@@ -159,8 +202,9 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 
   <section style="display:grid;gap:12px">
     <div class="map-box"><canvas id="map-join" aria-label="World map with delegate pins"></canvas>
-      <div class="zoomctl" data-map="join"><button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">−</button><button type="button" data-z="ng">Nigeria</button><button type="button" data-z="me" id="me-btn" hidden>Me</button><button type="button" data-z="reset">Reset</button></div></div>
-    <p class="muted">Pinch, scroll or double-tap to zoom. Zoom into Nigeria to see everyone who has arrived.</p>
+    </div>
+    <p class="muted">Pinch, scroll or double-tap to zoom. Zoom into the gathering point to see everyone who has arrived.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="ghost" id="hub-btn">Show the gathering point</button><button type="button" class="ghost" id="find-btn" hidden>Find my pin</button></div>
     <div class="stat" id="stat-join"></div>
     <p class="muted" id="live-note"></p>
   </section>
@@ -171,14 +215,16 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 <main id="view-screen" class="screen" hidden>
   <div class="screen-top">
     <div style="display:grid;gap:4px">
-      <p class="eyebrow">Loveworld Kingdom welcomes you</p>
-      <h1>World in One Room</h1>
+      <p class="eyebrow" id="e-screen">Loveworld Kingdom welcomes you</p>
+      <h1 id="t-screen">World in One Room</h1>
+      <p class="muted" id="screen-event"></p>
     </div>
     <div class="stat" id="stat-screen"></div>
   </div>
   <div class="map-box">
     <canvas id="map-screen" aria-label="Live world map"></canvas>
-    <div class="zoomctl" data-map="screen"><button type="button" data-z="ng">Nigeria</button><button type="button" data-z="in" aria-label="Zoom in">+</button><button type="button" data-z="out" aria-label="Zoom out">−</button><button type="button" data-z="reset">Reset</button></div>
+    <button type="button" class="ghost map-full" id="map-full">Full screen map</button>
+    <div class="stat imm-only" id="stat-imm"></div>
     <div class="floaters" id="floaters"></div>
   </div>
   <div class="screen-foot">
@@ -190,28 +236,14 @@ body[data-view="screen"] { padding-block: 14px 14px; }
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button type="button" class="ghost" id="btn-full">Full screen</button>
+      <button type="button" class="ghost" id="btn-full">Full screen map</button>
       <button type="button" class="ghost" id="btn-closing">Closing screen</button>
-      <input id="host-pin" type="password" placeholder="Host PIN" autocomplete="off" style="width:130px;padding:10px 12px;font-size:0.9rem">
       <a class="muted" href="#">Join page</a>
     </div>
   </div>
-  <section class="card host" id="host" hidden>
-    <h2>Add a delegate</h2>
-    <p class="muted">For anyone who cannot use their phone. Only you see this panel.</p>
-    <form id="host-form" autocomplete="off">
-      <div class="row">
-        <label for="h-name">Name<input id="h-name" maxlength="40" required></label>
-        <label for="h-country">Country<select id="h-country" required></select></label>
-      </div>
-      <label for="h-greeting">Greeting (optional)<input id="h-greeting" maxlength="120"></label>
-      <button type="submit">Add to map</button>
-      <p class="status" id="h-status" aria-live="polite"></p>
-    </form>
-  </section>
   <div class="closing" id="closing" hidden>
     <p class="eyebrow">Thank you for coming</p>
-    <h2>Nigeria says thank you.</h2>
+    <h2 id="closing-title">Loveworld Kingdom says thank you.</h2>
     <p id="closing-nations"></p>
     <div><button type="button" class="ghost" id="closing-back">Back to the map</button></div>
   </div>
@@ -222,10 +254,137 @@ body[data-view="screen"] { padding-block: 14px 14px; }
   <header style="display:grid;gap:12px">
     <p class="eyebrow">Keepsake</p>
     <h1>Everyone who came</h1>
-    <p class="lede" id="wall-lede">Every nation and greeting from the room, in one place to keep and share.</p>
+    <p class="lede" id="wall-lede">Every country and greeting from the room, in one place to keep and share.</p>
   </header>
   <div class="chips" id="wall-chips"></div>
   <div class="grid" id="wall-grid"></div>
+  <nav class="nav"><a href="#">Back to join</a></nav>
+</main>
+
+<!-- ADMIN -->
+<main id="view-admin" class="wrap" hidden>
+  <header style="display:grid;gap:12px">
+    <p class="eyebrow">Host controls</p>
+    <h1>Admin</h1>
+    <p class="lede">Everything here changes the live map for everyone, straight away.</p>
+  </header>
+
+  <section class="card" id="admin-gate">
+    <form id="gate-form" autocomplete="off">
+      <label for="gate-pin">Host PIN<input id="gate-pin" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Unlock</button>
+      <p class="status" id="gate-status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <div id="admin-panels" hidden style="display:grid;gap:22px">
+
+    <div id="admin-bar" role="region" aria-label="Save and reset">
+      <div class="row">
+        <button type="button" id="bar-save">Save all changes</button>
+        <button type="button" class="danger" id="bar-reset">Clear test data</button>
+      </div>
+      <p class="status" id="bar-status" aria-live="polite"></p>
+    </div>
+
+    <section class="card">
+      <h2>Live controls</h2>
+      <label class="toggle" for="a-join-open"><span>Joining is open</span><input type="checkbox" id="a-join-open"></label>
+      <label class="toggle" for="a-ping-open"><span>Ping button is on</span><input type="checkbox" id="a-ping-open"></label>
+      <label class="toggle" for="a-greet"><span>Show greetings on the screen and keepsake</span><input type="checkbox" id="a-greet"></label>
+      <p class="status" id="a-ctl-status" aria-live="polite"></p>
+      <div class="nav"><a href="#screen">Open the big screen</a><a href="#wall">Open the keepsake</a><a href="#">Open the join page</a></div>
+      <p class="muted">Big-screen keys: N gathering point, R whole world, F full screen, C closing screen, + and − zoom.</p>
+      <div><button type="button" class="ghost" id="a-copy">Copy the join link</button> <span class="muted" id="a-copy-note"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>Event details</h2>
+      <form id="form-event" autocomplete="off">
+        <label for="a-title">Page title<input id="a-title" maxlength="60" placeholder="World in One Room"></label>
+        <label for="a-eyebrow">Welcome line<input id="a-eyebrow" maxlength="80" placeholder="Loveworld Kingdom welcomes you"></label>
+        <label for="a-closing">Closing screen message<input id="a-closing" maxlength="80" placeholder="Loveworld Kingdom says thank you."></label>
+        <label for="a-evname">Event name<input id="a-evname" maxlength="80"></label>
+        <div class="row">
+          <label for="a-date">Date<input id="a-date" type="date"></label>
+          <label for="a-time">Time<input id="a-time" type="time"></label>
+        </div>
+        <label for="a-venue">Venue<input id="a-venue" maxlength="120"></label>
+        <label for="a-notes">Note for delegates (optional)<textarea id="a-notes" maxlength="400"></textarea></label>
+        <button type="submit">Save event details</button>
+        <p class="status" id="a-event-status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Gathering point</h2>
+      <p class="muted">Where every flag lands. Tap the map to place it, or search for a place.</p>
+      <form id="a-search-form" style="display:flex;gap:8px"><input id="a-search" placeholder="Search a place" aria-label="Search a place"><button type="submit" class="ghost">Search</button></form>
+      <div class="map-box"><canvas id="map-admin" aria-label="Map for choosing the gathering point"></canvas></div>
+      <form id="form-hub" autocomplete="off">
+        <div class="row">
+          <label for="a-hub-name">Name<input id="a-hub-name" maxlength="60" placeholder="Lagos"></label>
+          <label for="a-lat">Latitude<input id="a-lat" inputmode="decimal"></label>
+          <label for="a-lon">Longitude<input id="a-lon" inputmode="decimal"></label>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="submit">Save gathering point</button><button type="button" class="ghost" id="a-hub-lagos">Use Lagos</button><button type="button" class="ghost" id="a-hub-ng">Use the centre of Nigeria</button></div>
+        <p class="status" id="a-hub-status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Flag on the pole</h2>
+      <p class="muted">The big flag that stands at the gathering point. Upload the Loveworld Nations flag as a picture. Until you do, a plain placeholder shows.</p>
+      <img class="flag-prev" id="a-flag-prev" alt="Flag preview">
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" id="a-flag-btn">Choose flag picture</button><button type="button" class="ghost" id="a-flag-rm">Use the placeholder</button></div>
+      <input type="file" id="a-flag-file" accept="image/*" hidden>
+      <p class="status" id="a-flag-status" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <h2>Programme</h2>
+      <form id="form-prog" autocomplete="off">
+        <div id="a-prog" style="display:grid;gap:10px"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="submit">Save programme</button><button type="button" class="ghost" id="a-add-prog">Add an item</button></div>
+        <p class="status" id="a-prog-status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Delegates <span class="muted" id="a-count"></span></h2>
+      <form id="host-form" autocomplete="off">
+        <p class="muted">Add someone who cannot use their phone.</p>
+        <div class="row">
+          <label for="h-name">Name<input id="h-name" maxlength="40" required></label>
+          <label for="h-country">Country<select id="h-country" required></select></label>
+        </div>
+        <label for="h-greeting">Greeting (optional)<input id="h-greeting" maxlength="120"></label>
+        <button type="submit">Add to map</button>
+        <p class="status" id="h-status" aria-live="polite"></p>
+      </form>
+      <div class="dlist" id="a-list"></div>
+      <div><button type="button" class="ghost" id="a-export">Download the list (CSV)</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Host PIN</h2>
+      <form id="form-pin" autocomplete="off">
+        <div class="row">
+          <label for="a-newpin">New PIN (6 or more characters)<input id="a-newpin" type="password" autocomplete="new-password"></label>
+          <label for="a-newpin2">Repeat the new PIN<input id="a-newpin2" type="password" autocomplete="new-password"></label>
+        </div>
+        <button type="submit">Change PIN</button>
+        <p class="status" id="a-pin-status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Reset</h2>
+      <p class="muted">Removes every delegate from the map and the keepsake. Your event details, programme and gathering point stay.</p>
+      <div><button type="button" class="danger" id="a-reset">Reset the map</button></div>
+      <p class="status" id="a-reset-status" aria-live="polite"></p>
+    </section>
+  </div>
   <nav class="nav"><a href="#">Back to join</a></nav>
 </main>
 
@@ -334,7 +493,7 @@ window.SUPABASE_CONFIG = {
 
   /* ---------- state ---------- */
   var pins = [];
-  var sb = null, isHost = false, hostPin = "", ready = false, myPin = null, editing = false;
+  var sb = null, isHost = false, hostPin = "", ready = false, myPin = null, editing = false, SET = {};
 
   function fillSelect(sel, placeholder) {
     sel.textContent = "";
@@ -362,13 +521,15 @@ window.SUPABASE_CONFIG = {
 
   /* ---------- map drawing ---------- */
   /* ---------- Nigeria is where everyone gathers ---------- */
-  var HUB = CO.NG;               // change lat/lon here to move the gathering point (for example to the venue)
+  var LAGOS = { name: "Lagos", lat: 6.5244, lon: 3.3792 };
+  var HUB = { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon }, PICK = null;   // the host moves this from the Admin page
+  function isHome(cc) { return cc === "NG" && Math.hypot(HUB.lat - CO.NG.lat, HUB.lon - CO.NG.lon) < 7; }
   var POS = {}, GROUPS = {}, FLY = {}, RINGS = [];
   function layout() {
     POS = {}; GROUPS = {};
     var all = pins.filter(function (p) { return CO[p.cc]; })
       .sort(function (x, y) { return (x.at - y.at) || (x.id < y.id ? -1 : 1); });
-    var n = all.length, sp = Math.min(0.45, 2.2 / Math.sqrt(Math.max(n, 1)));
+    var n = all.length, sp = Math.min(0.012, 0.07 / Math.sqrt(Math.max(n, 1)));   // degrees: everyone sits within a few km of the gathering point
     all.forEach(function (p, i) {
       var r = sp * Math.sqrt(i), th = i * 2.399963;
       POS[p.id] = [HUB.lon + Math.cos(th) * r, HUB.lat + Math.sin(th) * r];
@@ -377,7 +538,7 @@ window.SUPABASE_CONFIG = {
     });
   }
   function startFlight(p, delay) {
-    var dur = p.cc === "NG" ? 700 : 4200;
+    var dur = isHome(p.cc) ? 700 : 4200;
     FLY[p.id] = { t0: Date.now() + delay, dur: dur, cc: p.cc };
     setTimeout(function () { if (view === "screen") showBanner(p); }, delay + dur);
   }
@@ -411,7 +572,7 @@ window.SUPABASE_CONFIG = {
     fetch(VEC_URLS[i]).then(function (r) { if (!r.ok) throw new Error("http"); return r.json(); })
       .then(function (t) {
         RINGS = ringsFrom(window.topojson.feature(t, t.objects.countries).features);
-        mapJoin.rebuildVector(); mapScreen.rebuildVector();
+        mapJoin.rebuildVector(); mapScreen.rebuildVector(); mapAdmin.rebuildVector();
       })
       .catch(function () { loadVector(i + 1); });
   }
@@ -437,22 +598,68 @@ window.SUPABASE_CONFIG = {
     ["Singapore", 1.35, 103.82], ["Kinshasa", -4.44, 15.27], ["Dakar", 14.72, -17.47]
   ];
 
+  /* ---------- the flag on the pole ---------- */
+  var POLE = { img: null, src: "", def: null };
+  function poleDefault() {
+    if (POLE.def) return POLE.def;
+    var c = document.createElement("canvas"); c.width = 300; c.height = 200; var g = c.getContext("2d");
+    var gr = g.createLinearGradient(0, 0, 300, 200); gr.addColorStop(0, "#0f5a3a"); gr.addColorStop(1, "#08301f");
+    g.fillStyle = gr; g.fillRect(0, 0, 300, 200);
+    g.strokeStyle = "#f4c25b"; g.lineWidth = 6; g.strokeRect(9, 9, 282, 182);
+    g.fillStyle = "#f4c25b"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "800 36px Inter, system-ui, sans-serif"; g.fillText("LOVEWORLD", 150, 80);
+    g.font = "700 32px Inter, system-ui, sans-serif"; g.fillText("NATIONS", 150, 124);
+    POLE.def = c; return c;
+  }
+  function setPoleFlag(src) {
+    src = (typeof src === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(src)) ? src : "";
+    if (src === POLE.src) return;
+    POLE.src = src; POLE.img = null;
+    if (src) { var im = new Image(); im.onload = function () { if (POLE.src === src) POLE.img = im; }; im.src = src; }
+  }
+
+  /* ---------- profile photos (small, fetched once per person) ---------- */
+  var PHOTO = {}, PHOTO_OK = true, photoBusy = false;
+  function photoOf(pin) {
+    var e = PHOTO[pin.id];
+    return (e && e.v === pin.pv && e.src && e.img.complete && e.img.naturalWidth) ? e.img : null;
+  }
+  function avatarEl(p) {
+    var e = PHOTO[p.id]; if (!e || e.v !== p.pv || !e.src) return null;
+    var i = el("img", "av"); i.alt = ""; i.src = e.src; return i;
+  }
+
+  /* ---------- street-level map tiles, shown only when zoomed in close ---------- */
+  var TILES = {}, TILE_N = 0;
+  function tileImg(z, x, y) {
+    var key = z + "/" + x + "/" + y, t = TILES[key];
+    if (t) return t;
+    if (++TILE_N > 700) { var ks = Object.keys(TILES); for (var i = 0; i < 200; i++) delete TILES[ks[i]]; TILE_N -= 200; }
+    t = TILES[key] = new Image();
+    t.src = "https://" + "abcd".charAt((x + y) & 3) + ".basemaps.cartocdn.com/dark_all/" + key + ".png";
+    return t;
+  }
+  function tileLat(y, n) { return Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI; }
+  function mercY(lat, n) { var r = Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180; return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n; }
+
   /* ---------- map with zoom, pan, planes and real-map detail ---------- */
   function makeMap(canvas, opts) {
-    var ctx = canvas.getContext("2d"), W = 0, H = 0, dpr = 1, MAXK = 48;
+    var ctx = canvas.getContext("2d"), W = 0, H = 0, MH = 0, dpr = 1;
+    function maxK() { return 256 * 65536 / Math.max(W, 1); }   // deepest zoom is street level
+    function kForZ(z) { return 256 * Math.pow(2, z) / Math.max(W, 1); }
     var V = { cx: 0.5, cy: 0.5, k: 1 }, anim = null, vecPath = null;
     var DX = [], DY = [], C = {}, shown = [], touchMode = "";
     function size(r) {
       dpr = Math.min(2, window.devicePixelRatio || 1);
-      W = r.width; H = r.height;
+      W = r.width; H = r.height; MH = W * LAT_SPAN / 360;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       DX = []; DY = [];
-      for (var i = 0; i < DOTS.length; i++) { DX.push((DOTS[i][0] + 180) / 360 * W); DY.push((LAT_TOP - DOTS[i][1]) / LAT_SPAN * H); }
+      for (var i = 0; i < DOTS.length; i++) { DX.push((DOTS[i][0] + 180) / 360 * W); DY.push((LAT_TOP - DOTS[i][1]) / LAT_SPAN * MH); }
       C = { land: css("--land"), edge: css("--land-edge"), ink: css("--ink"), ink2: css("--ink-2"), gold: css("--gold"), line: css("--line") };
       buildVec();
     }
     function bx(lon) { return (lon + 180) / 360 * W; }
-    function by(lat) { return (LAT_TOP - lat) / LAT_SPAN * H; }
+    function by(lat) { return (LAT_TOP - lat) / LAT_SPAN * MH; }
     function buildVec() {
       if (!RINGS.length || !W) { vecPath = null; return; }
       var P = new Path2D();
@@ -463,38 +670,61 @@ window.SUPABASE_CONFIG = {
       }
       vecPath = P;
     }
-    function clampV() { var h = 0.5 / V.k; V.cx = Math.min(Math.max(V.cx, h), 1 - h); V.cy = Math.min(Math.max(V.cy, h), 1 - h); }
-    function scr(x, y) { return [(x - V.cx * W) * V.k + W / 2, (y - V.cy * H) * V.k + H / 2]; }
+    function clampV() { var hx = 0.5 / V.k, hy = 0.5 * H / (MH * V.k); V.cx = Math.min(Math.max(V.cx, hx), 1 - hx); V.cy = hy >= 0.5 ? 0.5 : Math.min(Math.max(V.cy, hy), 1 - hy); }
+    function scr(x, y) { return [(x - V.cx * W) * V.k + W / 2, (y - V.cy * MH) * V.k + H / 2]; }
     function ll(lon, lat) { return scr(bx(lon), by(lat)); }
     function zoomAt(px, py, ratio) {
-      var nk = Math.min(MAXK, Math.max(1, V.k * ratio)); if (nk === V.k) return;
-      var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * H + (py - H / 2) / V.k;
-      V.k = nk; V.cx = (x - (px - W / 2) / nk) / W; V.cy = (y - (py - H / 2) / nk) / H; clampV();
+      var nk = Math.min(maxK(), Math.max(1, V.k * ratio)); if (nk === V.k) return;
+      var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * MH + (py - H / 2) / V.k;
+      V.k = nk; V.cx = (x - (px - W / 2) / nk) / W; V.cy = (y - (py - H / 2) / nk) / MH; clampV();
     }
     function animateTo(cx, cy, k) {
-      anim = { t0: performance.now(), dur: 450, a: { cx: V.cx, cy: V.cy, k: V.k }, b: { cx: cx, cy: cy, k: Math.min(MAXK, Math.max(1, k)) } };
+      anim = { t0: performance.now(), dur: 450, a: { cx: V.cx, cy: V.cy, k: V.k }, b: { cx: cx, cy: cy, k: Math.min(maxK(), Math.max(1, k)) } };
     }
-    function focusLL(lon, lat, k) { animateTo(bx(lon) / W, by(lat) / H, k); }
+    function focusLL(lon, lat, k) { animateTo(bx(lon) / W, by(lat) / MH, k); }
+    function focusZ(lon, lat, z) { focusLL(lon, lat, kForZ(z)); }
     function focusPin(id, k) { var pos = POS[id]; if (pos) focusLL(pos[0], pos[1], k); }
 
+    function drawWave(img, iw, ih, x, y, w, h, t, ph, amp) {
+      if (reduced) {
+        ctx.drawImage(img, x, y, w, h);
+        ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
+        return;
+      }
+      var n = Math.max(6, Math.round(w / 2.5)), sw = iw / n, dw = w / n, stp = 0.75 * Math.min(1, 14 / n);
+      for (var i = 0; i < n; i++) {
+        var u = i / (n - 1), a = t / 330 + i * stp + ph, wv = Math.sin(a), off = wv * h * amp * (0.25 + 0.75 * u);
+        ctx.drawImage(img, sw * i, 0, sw, ih, x + dw * i, y + off, dw + 0.7, h);
+        ctx.fillStyle = "rgba(0,0,0," + (0.14 * (0.5 + 0.5 * wv)).toFixed(3) + ")";
+        ctx.fillRect(x + dw * i, y + off, dw + 0.7, h);
+      }
+    }
     function drawFlag(cc, x, y, w, h, t) {
       var fi = flagImg(cc);
-      if (fi.complete && fi.naturalWidth) {
-        if (reduced) {
-          ctx.drawImage(fi, x, y, w, h);
-          ctx.strokeStyle = "rgba(255,255,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(x, y, w, h);
-          return;
+      if (fi.complete && fi.naturalWidth) drawWave(fi, fi.naturalWidth, fi.naturalHeight, x, y, w, h, t, (hash(cc) % 628) / 100, 0.09);
+      else if (fi.complete) ctx.fillStyle = C.ink, ctx.fillText(cc, x, y + h / 2);
+    }
+    function drawTiles(zf, alpha) {
+      var z = Math.max(0, Math.min(17, Math.floor(zf + 0.35))), n = Math.pow(2, z), ppd = W * V.k / 360;
+      var lonL = (V.cx * W - W / 2 / V.k) / W * 360 - 180, lonR = lonL + W / ppd;
+      var latT = LAT_TOP - (V.cy * MH - H / 2 / V.k) / MH * LAT_SPAN, latB = latT - H / ppd;
+      var x0 = Math.max(0, Math.floor((lonL + 180) / 360 * n)), x1 = Math.min(n - 1, Math.floor((lonR + 180) / 360 * n));
+      var y0 = Math.max(0, Math.floor(mercY(latT, n))), y1 = Math.min(n - 1, Math.floor(mercY(latB, n)));
+      if ((x1 - x0 + 1) * (y1 - y0 + 1) > 260) return;
+      ctx.globalAlpha = alpha;
+      for (var x = x0; x <= x1; x++) for (var y = y0; y <= y1; y++) {
+        var p0 = ll(x / n * 360 - 180, tileLat(y, n)), p1 = ll((x + 1) / n * 360 - 180, tileLat(y + 1, n)), w = p1[0] - p0[0] + 0.7, h = p1[1] - p0[1] + 0.7;
+        var im = tileImg(z, x, y);
+        if (im.complete && im.naturalWidth) { ctx.drawImage(im, p0[0], p0[1], w, h); continue; }
+        for (var d = 1; d <= 4 && z - d >= 0; d++) {            // while it loads, borrow the blurrier tile above
+          var an = TILES[(z - d) + "/" + (x >> d) + "/" + (y >> d)];
+          if (an && an.complete && an.naturalWidth) {
+            var m = 1 << d, sw = 256 / m;
+            ctx.drawImage(an, (x % m) * sw, (y % m) * sw, sw, sw, p0[0], p0[1], w, h); break;
+          }
         }
-        var ph = (hash(cc) % 628) / 100, n = Math.max(6, Math.round(w / 2.5)), sw = fi.naturalWidth / n, dw = w / n;
-        for (var i = 0; i < n; i++) {
-          var u = i / (n - 1), a = t / 330 + i * 0.75 + ph, wv = Math.sin(a), off = wv * h * 0.09 * (0.25 + 0.75 * u);
-          ctx.drawImage(fi, sw * i, 0, sw, fi.naturalHeight, x + dw * i, y + off, dw + 0.7, h);
-          ctx.fillStyle = "rgba(0,0,0," + (0.14 * (0.5 + 0.5 * wv)).toFixed(3) + ")";
-          ctx.fillRect(x + dw * i, y + off, dw + 0.7, h);
-        }
-      } else if (fi.complete) {
-        ctx.fillStyle = C.ink; ctx.fillText(cc, x, y + h / 2);
       }
+      ctx.globalAlpha = 1;
     }
     function drawPlane(x, y, ang, sz) {
       ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(sz, sz);
@@ -507,26 +737,28 @@ window.SUPABASE_CONFIG = {
       ctx.beginPath(); ctx.moveTo(-0.7, 0.08); ctx.lineTo(-0.95, 0.38); ctx.lineTo(-1.08, 0.38); ctx.lineTo(-0.92, 0.04); ctx.closePath(); ctx.fill();
       ctx.restore();
     }
-    function nice(km) { var a = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], best = a[0]; for (var i = 0; i < a.length; i++) if (a[i] <= km) best = a[i]; return best; }
+    function nice(km) { var a = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], best = a[0]; for (var i = 0; i < a.length; i++) if (a[i] <= km) best = a[i]; return best; }
 
     function frame() {
       var r = canvas.getBoundingClientRect();
       if (!r.width) return;
-      if (!W || Math.abs(r.width - W) > 0.5) size(r);
+      if (!W || Math.abs(r.width - W) > 0.5 || Math.abs(r.height - H) > 0.5) size(r);
       if (anim) {
         var u = Math.min(1, (performance.now() - anim.t0) / anim.dur), e = 1 - Math.pow(1 - u, 3);
         V.k = Math.exp(Math.log(anim.a.k) + (Math.log(anim.b.k) - Math.log(anim.a.k)) * e);
         V.cx = anim.a.cx + (anim.b.cx - anim.a.cx) * e; V.cy = anim.a.cy + (anim.b.cy - anim.a.cy) * e;
         clampV(); if (u >= 1) anim = null;
       }
-      var mode = (opts.screen || V.k > 1.001) ? "none" : "pan-y";
+      var mode = (opts.screen || opts.pick || V.k > 1.001) ? "none" : "pan-y";
       if (mode !== touchMode) { canvas.style.touchAction = mode; touchMode = mode; }
-      var k = V.k, T = Date.now(), cx0 = V.cx * W, cy0 = V.cy * H;
+      var k = V.k, T = Date.now(), cx0 = V.cx * W, cy0 = V.cy * MH;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      // 1. land: real borders when loaded, dot map until then
-      if (vecPath) {
+      // 1. land: real borders when loaded, dot map until then; street tiles fade in when zoomed close
+      var zf = Math.log(Math.max(W * k / 256, 1e-6)) / Math.LN2, tileA = Math.max(0, Math.min(1, (zf - 6.5) / 2)), la1 = 1 - tileA;
+      if (tileA >= 0.999) { /* tiles cover everything */ }
+      else if (vecPath) {
         ctx.save();
         ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * (W / 2 - cx0 * k), dpr * (H / 2 - cy0 * k));
         ctx.fillStyle = C.land; ctx.fill(vecPath, "evenodd");
@@ -543,11 +775,19 @@ window.SUPABASE_CONFIG = {
         }
         ctx.fill(); ctx.globalAlpha = 1;
       }
+      if (tileA > 0) {
+        drawTiles(zf, tileA);
+        if (tileA > 0.3) {
+          ctx.font = "500 " + Math.max(9, W / 150) + "px Inter, system-ui, sans-serif"; ctx.textBaseline = "alphabetic"; ctx.textAlign = "right";
+          ctx.fillStyle = "rgba(220,230,224," + (0.7 * tileA).toFixed(2) + ")";
+          ctx.fillText("© OpenStreetMap contributors © CARTO", W - 8, H - 6); ctx.textAlign = "left";
+        }
+      }
 
       // 2. graticule with degree labels
       var fs = Math.max(9, W / 120);
       ctx.font = "500 " + (fs * 0.9) + "px Inter, system-ui, sans-serif"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
-      if (k >= 1.8) {
+      if (k >= 1.8 && tileA < 0.4) {
         var step = k < 3 ? 30 : k < 8 ? 10 : k < 20 ? 5 : 1, ga = Math.min(0.16, 0.05 + (k - 1.8) * 0.02);
         ctx.strokeStyle = "rgba(148,172,159," + ga.toFixed(3) + ")"; ctx.lineWidth = 1; ctx.fillStyle = "rgba(148,172,159,0.6)";
         ctx.beginPath();
@@ -562,7 +802,7 @@ window.SUPABASE_CONFIG = {
 
       // 3. country markers: where each delegate comes from
       Object.keys(GROUPS).forEach(function (cc) {
-        if (cc === "NG") return;
+        if (isHome(cc)) return;
         var g = GROUPS[cc], s = ll(g.c.lon, g.c.lat);
         if (s[0] < -20 || s[0] > W + 20 || s[1] < -20 || s[1] > H + 20) return;
         ctx.fillStyle = "rgba(244,194,91,0.55)"; ctx.beginPath(); ctx.arc(s[0], s[1], Math.max(2, W / 420), 0, 6.2832); ctx.fill();
@@ -618,6 +858,12 @@ window.SUPABASE_CONFIG = {
         shown.push({ pin: pin, s: s, mine: mine });
       });
 
+      if (opts.pick && PICK) {
+        var ps = ll(PICK.lon, PICK.lat), pr = 11;
+        ctx.strokeStyle = C.gold; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ps[0], ps[1], pr, 0, 6.2832); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ps[0] - pr - 6, ps[1]); ctx.lineTo(ps[0] + pr + 6, ps[1]); ctx.moveTo(ps[0], ps[1] - pr - 6); ctx.lineTo(ps[0], ps[1] + pr + 6); ctx.stroke();
+      }
+
       // 5. labels, most important first, none overlapping
       var fw = fs * 1.9, fh = fs * 1.3, gap = fs * 0.4, boxes = [];
       ctx.font = "600 " + fs + "px Inter, system-ui, sans-serif"; ctx.textAlign = "left";
@@ -625,15 +871,21 @@ window.SUPABASE_CONFIG = {
         for (var i2 = 0; i2 < boxes.length; i2++) { var qb = boxes[i2]; if (b[0] < qb[2] && b[2] > qb[0] && b[1] < qb[3] && b[3] > qb[1]) return false; }
         return true;
       }
-      function placeFlags(ccs, sx, sy, txt, strong) {
+      function placeFlags(ccs, sx, sy, txt, strong, ph) {
         if (sx < -80 || sx > W + 80 || sy < -40 || sy > H + 40) return;
-        var span = fw + (ccs.length - 1) * fw * 0.5, w = span + (txt ? gap + ctx.measureText(txt).width : 0), x = sx + W / 150, y = sy - fs * 0.9;
+        var av = ph ? Math.max(fh * 1.9, 22) : 0, avw = av ? av + gap : 0;
+        var span = fw + (ccs.length - 1) * fw * 0.5, w = avw + span + (txt ? gap + ctx.measureText(txt).width : 0), x = sx + W / 150, y = sy - fs * 0.9, hh = Math.max(fh, av);
         if (x + w > W - 4) x = sx - W / 150 - w;
-        var b = [x - 2, y - fh / 2 - 1, x + w + 2, y + fh / 2 + 1];
+        var b = [x - 2, y - hh / 2 - 1, x + w + 2, y + hh / 2 + 1];
         if (!free(b)) return;
         boxes.push(b);
-        for (var j = ccs.length - 1; j >= 0; j--) drawFlag(ccs[j], x + j * fw * 0.5, y - fh / 2, fw, fh, T);
-        if (txt) { ctx.fillStyle = strong ? C.gold : C.ink; ctx.fillText(txt, x + span + gap, y); }
+        if (av) {
+          ctx.save(); ctx.beginPath(); ctx.arc(x + av / 2, y, av / 2, 0, 6.2832); ctx.clip();
+          ctx.drawImage(ph, x, y - av / 2, av, av); ctx.restore();
+          ctx.strokeStyle = C.gold; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x + av / 2, y, av / 2, 0, 6.2832); ctx.stroke();
+        }
+        for (var j = ccs.length - 1; j >= 0; j--) drawFlag(ccs[j], x + avw + j * fw * 0.5, y - fh / 2, fw, fh, T);
+        if (txt) { ctx.fillStyle = strong ? C.gold : C.ink; ctx.fillText(txt, x + avw + span + gap, y); }
       }
       function placeText(txt, sx, sy, alpha, font, color, center, dot) {
         if (sx < 0 || sx > W || sy < 0 || sy > H || alpha <= 0.02) return;
@@ -646,6 +898,19 @@ window.SUPABASE_CONFIG = {
         if (dot) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(sx, sy, 2, 0, 6.2832); ctx.fill(); }
         ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.globalAlpha = 1;
       }
+      // the flag on its pole, standing at the gathering point
+      var hp = ll(HUB.lon, HUB.lat);
+      if (hp[0] > -140 && hp[0] < W + 140 && hp[1] > -20 && hp[1] < H + 220) {
+        var poleH = Math.max(56, Math.min(130, W / 14)) * Math.min(1, 0.5 + 0.1 * Math.log(k) / Math.LN2), pw = Math.max(2, poleH / 24), flW = poleH * 0.9, flH = flW * 0.64;
+        var psrc = POLE.img || poleDefault(), piw = POLE.img ? POLE.img.naturalWidth : psrc.width, pih = POLE.img ? POLE.img.naturalHeight : psrc.height;
+        if (POLE.img && piw && pih) flH = flW * pih / piw;
+        ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.ellipse(hp[0], hp[1], pw * 2.4, pw * 1.1, 0, 0, 6.2832); ctx.fill(); ctx.restore();
+        ctx.strokeStyle = "#e9e3d2"; ctx.lineWidth = pw; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(hp[0], hp[1]); ctx.lineTo(hp[0], hp[1] - poleH); ctx.stroke(); ctx.lineCap = "butt";
+        ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(hp[0], hp[1] - poleH, pw * 1.3, 0, 6.2832); ctx.fill();
+        drawWave(psrc, piw, pih, hp[0] + pw / 2, hp[1] - poleH + pw, flW, flH, T, 0.6, 0.06);
+        boxes.push([hp[0] - pw * 2, hp[1] - poleH - pw * 2, hp[0] + flW + pw * 2, hp[1] - poleH + flH + pw * 2]);
+        boxes.push([hp[0] - pw * 2.5, hp[1] - poleH, hp[0] + pw * 2.5, hp[1] + pw * 2]);
+      }
       if (!zoomed) {
         var sorted = pins.filter(function (p) { return POS[p.id]; }).sort(function (a, b2) { return b2.at - a.at; }), fan = [];
         sorted.forEach(function (p) { if (fan.indexOf(p.cc) < 0 && fan.length < 4) fan.push(p.cc); });
@@ -653,30 +918,30 @@ window.SUPABASE_CONFIG = {
       } else {
         shown.slice().sort(function (a, b2) { return (b2.mine - a.mine) || (b2.pin.at - a.pin.at); }).forEach(function (o) {
           var nm = o.pin.name.length > 16 ? o.pin.name.slice(0, 15) + "…" : o.pin.name;
-          placeFlags([o.pin.cc], o.s[0], o.s[1], o.mine ? "You · " + nm : nm, o.mine);
+          placeFlags([o.pin.cc], o.s[0], o.s[1], o.mine ? "You · " + nm : nm, o.mine, photoOf(o.pin));
         });
       }
-      var codes = Object.keys(GROUPS).filter(function (c) { return c !== "NG"; });
+      var codes = Object.keys(GROUPS).filter(function (c) { return !isHome(c); });
       codes.forEach(function (cc) { var g2 = GROUPS[cc], s2 = ll(g2.c.lon, g2.c.lat); placeFlags([cc], s2[0], s2[1], g2.n > 1 ? "× " + g2.n : "", false); });
 
       var fn = "600 " + fs + "px Inter, system-ui, sans-serif", fi2 = "italic 500 " + fs * 0.95 + "px Inter, system-ui, sans-serif";
       if (k >= 3.2) {
-        var ca = Math.min(0.85, (k - 3.2) / 1.5);
+        var ca = Math.min(0.85, (k - 3.2) / 1.5) * la1;
         CODES.forEach(function (cc) { var c = CO[cc], s3 = ll(c.lon, c.lat); placeText(c.name, s3[0], s3[1] + fs * 1.6, ca, fn, C.ink2, true, false); });
       }
       if (k >= 4.5) {
-        var na = Math.min(0.95, (k - 4.5) / 1.5);
+        var na = Math.min(0.95, (k - 4.5) / 1.5) * la1;
         NG_CITIES.forEach(function (c) {
           if (!c[3] && k < 7) return;
           var s4 = ll(c[2], c[1]); placeText(c[0], s4[0], s4[1], na, c[3] ? fn : "500 " + fs * 0.9 + "px Inter, system-ui, sans-serif", C.ink, false, true);
         });
       }
       if (k >= 6) {
-        var wa = Math.min(0.9, (k - 6) / 2);
+        var wa = Math.min(0.9, (k - 6) / 2) * la1;
         WORLD_CITIES.forEach(function (c) { var s5 = ll(c[2], c[1]); placeText(c[0], s5[0], s5[1], wa, "500 " + fs * 0.9 + "px Inter, system-ui, sans-serif", C.ink2, false, true); });
       }
       if (k >= 1.4 && k < 12) {
-        var oa = Math.min(0.7, (k - 1.4) / 0.8) * Math.min(1, (12 - k) / 4);
+        var oa = Math.min(0.7, (k - 1.4) / 0.8) * Math.min(1, (12 - k) / 4) * la1;
         OCEANS.forEach(function (o) { var s6 = ll(o[2], o[1]); placeText(o[0], s6[0], s6[1], oa, fi2, "#5f8a78", true, false); });
       }
       if (k >= 1.4 && k < 4) {
@@ -690,7 +955,7 @@ window.SUPABASE_CONFIG = {
         var f = FLY[id];
         if (T > f.t0 + f.dur + 6000) { delete FLY[id]; return; }
         var u = (T - f.t0) / f.dur;
-        if (u <= 0 || u >= 1 || f.cc === "NG") return;
+        if (u <= 0 || u >= 1 || isHome(f.cc)) return;
         var c = CO[f.cc]; if (!c) return;
         var O = ll(c.lon, c.lat), Hh = hubS, dx = Hh[0] - O[0], dy = Hh[1] - O[1], dist = Math.hypot(dx, dy);
         var Cp = [(O[0] + Hh[0]) / 2, (O[1] + Hh[1]) / 2 - Math.min(dist * 0.28, H * 0.35)];
@@ -709,10 +974,10 @@ window.SUPABASE_CONFIG = {
 
       // 7. scale bar
       if (k >= 2) {
-        var midLat = 84 - (cy0 / H) * 142, kmPerPx = 360 * 111.32 * Math.cos(midLat * Math.PI / 180) / (W * k), km = nice(kmPerPx * 110), len = km / kmPerPx;
+        var midLat = LAT_TOP - (cy0 / MH) * LAT_SPAN, kmPerPx = 360 * 111.32 * Math.cos(midLat * Math.PI / 180) / (W * k), km = nice(kmPerPx * 110), len = km / kmPerPx;
         var bx0 = 12, by0 = H - 14;
         ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx0, by0 - 4); ctx.lineTo(bx0, by0); ctx.lineTo(bx0 + len, by0); ctx.lineTo(bx0 + len, by0 - 4); ctx.stroke();
-        ctx.fillStyle = C.ink; ctx.font = "500 " + fs * 0.9 + "px Inter, system-ui, sans-serif"; ctx.fillText(km + " km", bx0, by0 - 11);
+        ctx.fillStyle = C.ink; ctx.font = "500 " + fs * 0.9 + "px Inter, system-ui, sans-serif"; ctx.fillText(km < 1 ? Math.round(km * 1000) + " m" : km + " km", bx0, by0 - 11);
       }
     }
 
@@ -739,7 +1004,7 @@ window.SUPABASE_CONFIG = {
       if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 6) moved = true;
       p.x = e.clientX; p.y = e.clientY;
       if (pcount() === 1) {
-        if (V.k > 1.0001) { V.cx -= dx / (V.k * W); V.cy -= dy / (V.k * H); clampV(); }
+        if (V.k > 1.0001) { V.cx -= dx / (V.k * W); V.cy -= dy / (V.k * MH); clampV(); }
       } else if (pcount() === 2) {
         var d = pdist(), m = pmid(), rr = canvas.getBoundingClientRect();
         if (pinchD > 0) zoomAt(m[0] - rr.left, m[1] - rr.top, d / pinchD);
@@ -750,13 +1015,18 @@ window.SUPABASE_CONFIG = {
       var p = ptrs[e.pointerId]; if (!p) return;
       delete ptrs[e.pointerId]; if (pcount() < 2) pinchD = 0;
       if (e.type === "pointerup" && !moved && pcount() === 0) {
-        var rr = canvas.getBoundingClientRect(), px = e.clientX - rr.left, py = e.clientY - rr.top, h = hit(px, py);
+        var rr = canvas.getBoundingClientRect(), px = e.clientX - rr.left, py = e.clientY - rr.top, h = opts.pick ? null : hit(px, py);
+        if (opts.pick) {
+          var xx = V.cx * W + (px - W / 2) / V.k, yy = V.cy * MH + (py - H / 2) / V.k;
+          if (opts.onPick) opts.onPick(xx / W * 360 - 180, LAT_TOP - yy / MH * LAT_SPAN);
+          lastTap = 0; return;
+        }
         if (h) { focusPin(h.pin.id, Math.max(V.k * 2.2, 8)); lastTap = 0; }
         else {
           var now = Date.now();
           if (now - lastTap < 320) {
-            var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * H + (py - H / 2) / V.k;
-            animateTo(x / W, y / H, V.k * 2.4);
+            var x = V.cx * W + (px - W / 2) / V.k, y = V.cy * MH + (py - H / 2) / V.k;
+            animateTo(x / W, y / MH, V.k * 2.4);
           }
           lastTap = now;
         }
@@ -765,7 +1035,7 @@ window.SUPABASE_CONFIG = {
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", up);
     canvas.addEventListener("wheel", function (e) {
-      if (!opts.screen && !e.ctrlKey && V.k <= 1.0001) return;
+      if (!opts.screen && !opts.pick && !e.ctrlKey && V.k <= 1.0001) return;
       e.preventDefault(); anim = null;
       var rr = canvas.getBoundingClientRect();
       zoomAt(e.clientX - rr.left, e.clientY - rr.top, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)));
@@ -777,36 +1047,33 @@ window.SUPABASE_CONFIG = {
       rebuildVector: function () { if (W) buildVec(); },
       zoomCenter: function (ratio) { anim = null; animateTo(V.cx, V.cy, V.k * ratio); },
       reset: function () { animateTo(0.5, 0.5, 1); },
-      focusMe: function () { if (myPin) focusPin(myPin.id, 12); },
-      focusNigeria: function () { focusLL(HUB.lon, HUB.lat, 9); }
+      focusMe: function () { var pos = myPin && POS[myPin.id]; if (pos) focusZ(pos[0], pos[1], 15); },
+      focusNigeria: function () { focusZ(HUB.lon, HUB.lat, 12.5); },
+      focusZ: focusZ,
+      focusLL: focusLL
     };
   }
   var mapJoin = makeMap($("map-join"), { screen: false });
   var mapScreen = makeMap($("map-screen"), { screen: true });
-  function wireZoom(name, m) {
-    var box = document.querySelector('[data-map="' + name + '"]'); if (!box) return;
-    box.addEventListener("click", function (ev) {
-      var z = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-z");
-      if (z === "in") m.zoomCenter(2); else if (z === "out") m.zoomCenter(0.5);
-      else if (z === "reset") m.reset(); else if (z === "me") m.focusMe(); else if (z === "ng") m.focusNigeria();
-    });
-  }
-  wireZoom("join", mapJoin); wireZoom("screen", mapScreen);
+  var mapAdmin = makeMap($("map-admin"), { screen: false, pick: true, onPick: function (lon, lat) { adminPick(lon, lat); } });
+  $("find-btn").addEventListener("click", function () { mapJoin.focusMe(); });
   var view = "join";
   function loop(now) {
-    if (!document.hidden) { (view === "screen" ? mapScreen : mapJoin).frame(); }
+    if (!document.hidden) { (view === "screen" ? mapScreen : view === "admin" ? mapAdmin : mapJoin).frame(); }
     requestAnimationFrame(loop);
   }
 
   /* ---------- views ---------- */
   function route() {
     var h = location.hash.replace("#", "");
-    view = (h === "screen" || h === "wall") ? h : "join";
+    view = (h === "screen" || h === "wall" || h === "admin") ? h : "join";
     $("view-join").hidden = view !== "join";
+    $("view-admin").hidden = view !== "admin";
     $("view-screen").hidden = view !== "screen";
     $("view-wall").hidden = view !== "wall";
     document.body.setAttribute("data-view", view);
     if (view === "screen") { drawQR(); }
+    if (view === "admin") { adminGate(); }
     render();
   }
   window.addEventListener("hashchange", route);
@@ -814,11 +1081,10 @@ window.SUPABASE_CONFIG = {
   function stats(target) {
     var nations = {}; pins.forEach(function (p) { if (CO[p.cc]) nations[p.cc] = 1; });
     target.textContent = "";
-    var a = el("span"), b = el("span");
+    var a = el("span");
     var nc = Object.keys(nations).length;
-    a.appendChild(el("b", null, String(nc))); a.appendChild(document.createTextNode(nc === 1 ? "nation" : "nations"));
-    b.appendChild(el("b", null, String(pins.length))); b.appendChild(document.createTextNode(pins.length === 1 ? "delegate" : "delegates"));
-    target.appendChild(a); target.appendChild(b);
+    a.appendChild(el("b", null, String(nc))); a.appendChild(document.createTextNode(nc === 1 ? "country" : "countries"));
+    target.appendChild(a);
     return Object.keys(nations);
   }
 
@@ -834,12 +1100,12 @@ window.SUPABASE_CONFIG = {
     pins.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); }).forEach(function (p) {
       var c = CO[p.cc]; if (!c) return;
       var n = el("article", "note");
-      var wl = el("div", "w"); wl.appendChild(flagEl(p.cc)); wl.appendChild(document.createTextNode(c.w)); n.appendChild(wl);
-      if (p.greeting) n.appendChild(el("div", "g", "“" + p.greeting + "”"));
+      var wl = el("div", "w"), av = avatarEl(p); if (av) wl.appendChild(av); wl.appendChild(flagEl(p.cc)); wl.appendChild(document.createTextNode(c.w)); n.appendChild(wl);
+      if (p.greeting && SET.showGreetings !== false) n.appendChild(el("div", "g", "“" + p.greeting + "”"));
       var m = el("div", "m"); m.appendChild(el("span", null, p.name + " · " + c.name));
       if (isHost && sb) {
         var d = el("button", null, "Remove"); d.type = "button";
-        d.addEventListener("click", function () { sb.rpc("host_remove", { p_pin: hostPin, p_id: p.id }).then(function () { load(); }); });
+        d.addEventListener("click", function () { hostRpc("host_remove", { p_id: p.id }).then(function () { load(); }).catch(function () {}); });
         m.appendChild(d);
       }
       n.appendChild(m); grid.appendChild(n);
@@ -847,10 +1113,12 @@ window.SUPABASE_CONFIG = {
   }
 
   function render() {
-    var nations = stats($("stat-join")); stats($("stat-screen"));
-    $("me-btn").hidden = !myPin;
-    var joinedMode = !!myPin && !editing;
-    $("join-form").hidden = joinedMode; $("joined").hidden = !joinedMode;
+    var nations = stats($("stat-join")); stats($("stat-screen")); stats($("stat-imm"));
+    $("find-btn").hidden = !myPin;
+    var joinedMode = !!myPin && !editing, open = SET.joinOpen !== false;
+    $("join-form").hidden = joinedMode || !open; $("joined").hidden = !joinedMode;
+    $("closed-note").hidden = joinedMode || open;
+    $("ping-btn").hidden = SET.pingOpen === false; $("edit-pin").hidden = !open;
     if (joinedMode && CO[myPin.cc]) {
       $("joined-hello").textContent = CO[myPin.cc].w + ", " + myPin.name;
       $("joined-msg").textContent = "Your pin for " + CO[myPin.cc].name + " is on the map. Look for it on the big screen.";
@@ -859,6 +1127,7 @@ window.SUPABASE_CONFIG = {
       ? nations.map(function (c) { return CO[c].name; }).sort().join(" · ")
       : "";
     if (view === "wall") renderWall();
+    if (view === "admin" && isHost) renderAdminList();
   }
 
   /* ---------- forms ---------- */
@@ -866,11 +1135,45 @@ window.SUPABASE_CONFIG = {
     var c = CO[this.value];
     $("f-hello").textContent = c ? c.w + "!" : "";
   });
+  /* photo picking: shrink on the phone, so uploads stay tiny */
+  function readImage(file, tw, th, cover, q) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var sw = im.naturalWidth, sh = im.naturalHeight, c = document.createElement("canvas"), g, cw, ch;
+        if (cover) {
+          cw = tw; ch = th; var sc = Math.max(tw / sw, th / sh), dw = sw * sc, dh = sh * sc;
+          c.width = cw; c.height = ch; g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cw, ch); g.drawImage(im, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        } else {
+          var s2 = Math.min(1, tw / sw, th / sh); cw = Math.max(1, Math.round(sw * s2)); ch = Math.max(1, Math.round(sh * s2));
+          c.width = cw; c.height = ch; g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, cw, ch); g.drawImage(im, 0, 0, cw, ch);
+        }
+        URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", q));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error("image")); };
+      im.src = url;
+    });
+  }
+  var photoNew = null;   // null = leave as it is, "" = remove, otherwise the new picture
+  function showPhotoPrev(src) {
+    var pv = $("f-photo-prev"); pv.hidden = !src; $("f-photo-ph").hidden = !!src; if (src) pv.src = src;
+    $("f-photo-rm").hidden = !src;
+  }
+  $("f-photo-btn").addEventListener("click", function () { $("f-photo").click(); });
+  $("f-photo").addEventListener("change", function () {
+    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+    readImage(f, 96, 96, true, 0.72).then(function (d) {
+      return d.length > 12000 ? readImage(f, 96, 96, true, 0.5) : d;
+    }).then(function (d) { photoNew = d; showPhotoPrev(d); setStatus("f-status", ""); })
+      .catch(function () { setStatus("f-status", "That picture could not be read. Try another one.", true); });
+  });
+  $("f-photo-rm").addEventListener("click", function () { photoNew = ""; showPhotoPrev(""); });
   function setStatus(id, msg, err) { var s = $(id); s.textContent = msg; s.className = "status" + (err ? " err" : ""); }
   function failText(e) {
     var m = e && e.message ? String(e.message) : "";
-    if (/invalid/i.test(m)) return "Please check your name and country and try again.";
-    if (/host pin/i.test(m)) return "That host PIN is not right.";
+    if (/closed/i.test(m)) return "Joining is closed right now. Please ask the host.";
+    if (/invalid/i.test(m)) return "Please check what you entered and try again.";
+    if (/host pin/i.test(m)) return "The host PIN was not accepted.";
     return "Could not reach the map. Check your connection and try again.";
   }
   $("join-form").addEventListener("submit", function (ev) {
@@ -879,9 +1182,17 @@ window.SUPABASE_CONFIG = {
     var name = $("f-name").value.trim(), cc = $("f-country").value, g = $("f-greeting").value.trim();
     if (!name || !CO[cc]) return;
     $("f-submit").disabled = true; setStatus("f-status", "Dropping your pin…");
-    sb.rpc("join_map", { p_device: deviceId(), p_name: name, p_cc: cc, p_greeting: g })
+    var args = { p_device: deviceId(), p_name: name, p_cc: cc, p_greeting: g, p_photo: photoNew };
+    sb.rpc("join_map", args)
+      .then(function (r) {
+        if (r.error && /p_photo|PGRST202|function/i.test(String(r.error.message || "") + String(r.error.code || ""))) {
+          delete args.p_photo; return sb.rpc("join_map", args);     // database not updated yet: join without the photo
+        }
+        return r;
+      })
       .then(function (r) {
         if (r.error) throw r.error;
+        photoNew = null;
         lsSet("wr_pin", r.data); editing = false; setStatus("f-status", "");
         return load();
       })
@@ -889,7 +1200,7 @@ window.SUPABASE_CONFIG = {
       .then(function () { $("f-submit").disabled = false; });
   });
   $("ping-btn").addEventListener("click", function () {
-    if (!myPin) return;
+    if (!myPin || SET.pingOpen === false) return;
     var b = this;
     PINGS[myPin.id] = Date.now();
     if (chan) { try { chan.send({ type: "broadcast", event: "ping", payload: { id: myPin.id } }); } catch (e) {} }
@@ -898,6 +1209,7 @@ window.SUPABASE_CONFIG = {
   });
   $("edit-pin").addEventListener("click", function () {
     editing = true;
+    photoNew = null; var pe = myPin && PHOTO[myPin.id]; showPhotoPrev(pe && pe.v === myPin.pv ? pe.src : "");
     if (myPin) { $("f-name").value = myPin.name; $("f-country").value = myPin.cc; $("f-greeting").value = myPin.greeting || ""; $("f-hello").textContent = CO[myPin.cc] ? CO[myPin.cc].w + "!" : ""; }
     render();
   });
@@ -907,11 +1219,8 @@ window.SUPABASE_CONFIG = {
     var name = $("h-name").value.trim(), cc = $("h-country").value, g = $("h-greeting").value.trim();
     if (!name || !CO[cc]) return;
     setStatus("h-status", "Adding…");
-    sb.rpc("host_add", { p_pin: hostPin, p_name: name, p_cc: cc, p_greeting: g })
-      .then(function (r) {
-        if (r.error) throw r.error;
-        setStatus("h-status", name + " added."); $("h-name").value = ""; $("h-greeting").value = ""; return load();
-      })
+    hostRpc("host_add", { p_name: name, p_cc: cc, p_greeting: g })
+      .then(function () { setStatus("h-status", name + " added."); $("h-name").value = ""; $("h-greeting").value = ""; return load(); })
       .catch(function (e) { setStatus("h-status", failText(e), true); });
   });
 
@@ -920,8 +1229,8 @@ window.SUPABASE_CONFIG = {
     var c = CO[p.cc]; if (!c) return;
     var box = $("floaters"), r = box.getBoundingClientRect();
     var d = el("div", "float"), head = el("div", "fh");
-    head.appendChild(flagEl(p.cc)); head.appendChild(el("span", null, p.name + " · " + c.name));
-    d.appendChild(head); d.appendChild(el("div", "fg", p.greeting ? p.greeting : c.w));
+    var av2 = avatarEl(p); if (av2) head.appendChild(av2); head.appendChild(flagEl(p.cc)); head.appendChild(el("span", null, p.name + " · " + c.name));
+    d.appendChild(head); d.appendChild(el("div", "fg", (p.greeting && SET.showGreetings !== false) ? p.greeting : c.w));
     d.style.left = (3 + Math.random() * 52) + "%";
     d.style.setProperty("--rise", Math.round(r.height * 0.8) + "px");
     d.addEventListener("animationend", function () { d.remove(); });
@@ -948,15 +1257,34 @@ window.SUPABASE_CONFIG = {
     try { localStorage.setItem("joinUrl", this.value.trim()); } catch (e) {}
     drawQR();
   });
-  $("btn-full").addEventListener("click", function () {
-    var e = document.documentElement;
-    if (document.fullscreenElement) { document.exitFullscreen(); }
-    else if (e.requestFullscreen) { e.requestFullscreen().catch(function () {}); }
+  function setImmersive(on) {
+    var v = $("view-screen"); v.classList.toggle("immersive", on);
+    $("map-full").textContent = on ? "Exit full screen" : "Full screen map";
+    if (on) { if (v.requestFullscreen) v.requestFullscreen().catch(function () {}); }
+    else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+  }
+  function toggleImmersive() { setImmersive(!$("view-screen").classList.contains("immersive")); }
+  $("btn-full").addEventListener("click", toggleImmersive);
+  $("map-full").addEventListener("click", toggleImmersive);
+  document.addEventListener("fullscreenchange", function () {
+    if (!document.fullscreenElement) { $("view-screen").classList.remove("immersive"); $("map-full").textContent = "Full screen map"; }
   });
+  $("hub-btn").addEventListener("click", function () { mapJoin.focusNigeria(); });
   $("btn-closing").addEventListener("click", function () { $("closing").hidden = false; });
   $("closing-back").addEventListener("click", function () { $("closing").hidden = true; });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") $("closing").hidden = true; });
-  window.addEventListener("resize", function () { mapJoin.rebuild(); mapScreen.rebuild(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { $("closing").hidden = true; if ($("view-screen").classList.contains("immersive")) setImmersive(false); return; }
+    if (view !== "screen" || e.ctrlKey || e.metaKey || e.altKey) return;
+    var tg = e.target && e.target.tagName; if (tg === "INPUT" || tg === "TEXTAREA" || tg === "SELECT") return;
+    var k = e.key.toLowerCase();
+    if (k === "n") mapScreen.focusNigeria();
+    else if (k === "r") mapScreen.reset();
+    else if (k === "f") toggleImmersive();
+    else if (k === "c") $("closing").hidden = !$("closing").hidden;
+    else if (k === "+" || k === "=") mapScreen.zoomCenter(2);
+    else if (k === "-" || k === "_") mapScreen.zoomCenter(0.5);
+  });
+  window.addEventListener("resize", function () { mapJoin.rebuild(); mapScreen.rebuild(); mapAdmin.rebuild(); });
 
   /* ---------- live data (Supabase) ---------- */
   var CFG = window.SUPABASE_CONFIG || {};
@@ -973,12 +1301,13 @@ window.SUPABASE_CONFIG = {
   }
   function noteLive(msg) { $("live-note").textContent = msg || ""; }
   function load() {
-    return sb.from("pins").select("id,name,cc,greeting,at").order("at", { ascending: false }).limit(1000)
+    return sb.from("pins").select(PHOTO_OK ? "id,name,cc,greeting,at,has_photo,photo_v" : "id,name,cc,greeting,at").order("at", { ascending: false }).limit(1000)
       .then(function (r) {
+        if (r.error && PHOTO_OK && /has_photo|photo_v|column/i.test(String(r.error.message || ""))) { PHOTO_OK = false; return load(); }
         if (r.error) { noteLive("Could not reach the live map. Retrying."); return; }
         noteLive("");
         var known = {}; pins.forEach(function (p) { known[p.id] = p; });
-        pins = (r.data || []).map(function (x) { return { id: x.id, name: String(x.name || "Guest").slice(0, 40), cc: x.cc, greeting: String(x.greeting || "").slice(0, 120), at: +x.at || 0 }; });
+        pins = (r.data || []).map(function (x) { return { id: x.id, name: String(x.name || "Guest").slice(0, 40), cc: x.cc, greeting: String(x.greeting || "").slice(0, 120), at: +x.at || 0, hasPhoto: !!x.has_photo, pv: +x.photo_v || 0 }; });
         var mine = lsGet("wr_pin");
         myPin = mine ? (pins.filter(function (p) { return p.id === mine; })[0] || null) : null;
         layout();
@@ -990,35 +1319,296 @@ window.SUPABASE_CONFIG = {
             if (o && (o.name !== p.name || o.greeting !== p.greeting)) PINGS[p.id] = Date.now();
           });
         }
-        ready = true; render();
+        ready = true; render(); loadPhotos();
       })
       .catch(function () { noteLive("Could not reach the live map. Retrying."); });
   }
+  function loadPhotos() {
+    if (!PHOTO_OK || photoBusy || !sb) return;
+    var vmap = {}, need = pins.filter(function (p) { vmap[p.id] = p.pv; var e = PHOTO[p.id]; return p.hasPhoto && (!e || e.v !== p.pv); }).map(function (p) { return p.id; });
+    if (!need.length) return;
+    photoBusy = true;
+    var chunk = need.slice(0, 40);
+    Promise.resolve(sb.from("pins").select("id,photo").in("id", chunk)).then(function (r) {
+      (r && r.data || []).forEach(function (row) {
+        var src = (typeof row.photo === "string" && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(row.photo)) ? row.photo : "";
+        var e = { v: vmap[row.id], src: src, img: new Image() };
+        if (src) e.img.src = src;
+        PHOTO[row.id] = e;
+      });
+    }).catch(function () {}).then(function () { photoBusy = false; render(); if (need.length > chunk.length) loadPhotos(); });
+  }
   var loadTimer = null;
   function loadSoon() { clearTimeout(loadTimer); loadTimer = setTimeout(load, 400); }
-  function checkHost(pin) {
-    sb.rpc("host_check", { p_pin: pin }).then(function (r) {
-      if (r.data === true) { isHost = true; hostPin = pin; lsSet("wr_host", pin); $("host").hidden = false; render(); }
-      else { lsSet("wr_host", ""); }
+  /* ---------- settings the host controls ---------- */
+  function loadSettings() {
+    if (!sb) return;
+    var q = sb.from("settings").select("data").eq("id", 1).maybeSingle();
+    Promise.resolve(q).then(function (r) {
+      var d = (r && r.data && r.data.data) || {};
+      if (JSON.stringify(d) !== JSON.stringify(SET)) { SET = d; applySettings(); }
+    }).catch(function () {});
+  }
+  var settingsTimer = null;
+  function loadSettingsSoon() { clearTimeout(settingsTimer); settingsTimer = setTimeout(loadSettings, 300); }
+  function fmtDate(d) {
+    if (!d) return "";
+    var x = new Date(d + "T00:00:00");
+    return isNaN(x) ? d : x.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+  function applySettings() {
+    var title = SET.title || "World in One Room", eyebrow = SET.eyebrow || "Loveworld Kingdom welcomes you";
+    $("t-join").textContent = title; $("t-screen").textContent = title;
+    $("e-join").textContent = eyebrow; $("e-screen").textContent = eyebrow;
+    document.title = title;
+    $("closing-title").textContent = SET.closing || "Loveworld Kingdom says thank you.";
+    var h = SET.hub;
+    if (h && isFinite(h.lat) && isFinite(h.lon)) { HUB.lat = +h.lat; HUB.lon = +h.lon; HUB.name = h.name || "Gathering point"; }
+    else { HUB.lat = LAGOS.lat; HUB.lon = LAGOS.lon; HUB.name = LAGOS.name; }
+    setPoleFlag(SET.flag);
+    layout();
+    var ev = SET.event || {}, prog = Array.isArray(SET.program) ? SET.program : [];
+    var meta = [fmtDate(ev.date), ev.time, ev.venue].filter(Boolean).join(" · ");
+    $("event-card").hidden = !(ev.name || meta || ev.notes || prog.length);
+    $("ev-name").textContent = ev.name || ""; $("ev-name").hidden = !ev.name;
+    $("ev-meta").textContent = meta; $("ev-meta").hidden = !meta;
+    $("ev-notes").textContent = ev.notes || ""; $("ev-notes").hidden = !ev.notes;
+    var pw = $("ev-prog"); pw.textContent = "";
+    prog.forEach(function (it) {
+      var row = el("div", "prow"), b = el("div");
+      row.appendChild(el("span", "pt", it.time || ""));
+      b.appendChild(el("div", null, it.title || "")); if (it.speaker) b.appendChild(el("div", "muted", it.speaker));
+      row.appendChild(b); pw.appendChild(row);
+    });
+    $("ev-prog-wrap").hidden = !prog.length;
+    $("screen-event").textContent = [ev.name, meta].filter(Boolean).join(" · ");
+    render();
+  }
+
+  function hostRpc(name, args) {
+    args = args || {}; args.p_pin = hostPin;
+    return sb.rpc(name, args).then(function (r) {
+      if (r.error) throw r.error;
+      if (r.data && r.data.ok === false) throw new Error(r.data.error === "pin" ? "host pin" : (r.data.error || "failed"));
+      return r.data;
     });
   }
-  $("host-pin").addEventListener("change", function () { if (sb && this.value) checkHost(this.value.trim()); });
+  function checkHost(pin, quiet) {
+    return sb.rpc("host_check", { p_pin: pin }).then(function (r) {
+      if (r.data && r.data.ok === true) { isHost = true; hostPin = pin; lsSet("wr_host", pin); adminGate(); render(); return true; }
+      isHost = false; lsSet("wr_host", "");
+      if (!quiet) setStatus("gate-status", "That PIN was not accepted. After many wrong tries the host controls pause for 10 minutes.", true);
+      adminGate(); return false;
+    }).catch(function () { if (!quiet) setStatus("gate-status", "Could not reach the server. Check your connection.", true); return false; });
+  }
+  var adminFilled = false;
+  function adminGate() {
+    $("admin-gate").hidden = isHost; $("admin-panels").hidden = !isHost;
+    if (isHost && !adminFilled && view === "admin") { adminFilled = true; fillAdmin(); }
+  }
+  $("gate-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!sb) { setStatus("gate-status", "The live map is not set up yet.", true); return; }
+    var v = $("gate-pin").value.trim(); if (!v) return;
+    setStatus("gate-status", "Checking…"); checkHost(v, false).then(function (ok) { if (ok) { $("gate-pin").value = ""; setStatus("gate-status", ""); } });
+  });
+
+  function saveSettings(patch, statusId) {
+    var next = Object.assign({}, SET, patch);
+    setStatus(statusId, "Saving…");
+    return hostRpc("host_save_settings", { p_data: next })
+      .then(function () { SET = next; applySettings(); setStatus(statusId, "Saved. The screen updates within a few seconds."); })
+      .catch(function (e) { setStatus(statusId, failText(e), true); });
+  }
+  function fillAdmin() {
+    var ev = SET.event || {}, h = SET.hub || { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon };
+    $("a-flag-prev").src = SET.flag || poleDefault().toDataURL("image/png");
+    $("a-title").value = SET.title || ""; $("a-eyebrow").value = SET.eyebrow || ""; $("a-closing").value = SET.closing || "";
+    $("a-evname").value = ev.name || ""; $("a-date").value = ev.date || ""; $("a-time").value = ev.time || "";
+    $("a-venue").value = ev.venue || ""; $("a-notes").value = ev.notes || "";
+    $("a-join-open").checked = SET.joinOpen !== false; $("a-ping-open").checked = SET.pingOpen !== false; $("a-greet").checked = SET.showGreetings !== false;
+    $("a-hub-name").value = h.name || ""; $("a-lat").value = h.lat; $("a-lon").value = h.lon;
+    PICK = { lat: +h.lat, lon: +h.lon };
+    var items = Array.isArray(SET.program) ? SET.program : [];
+    $("a-prog").textContent = "";
+    items.forEach(addProgRow); if (!items.length) addProgRow({});
+  }
+  function readProgram() {
+    var items = [];
+    Array.prototype.forEach.call($("a-prog").children, function (row) {
+      var f = row.querySelectorAll("input");
+      var it = { time: f[0].value, title: f[1].value.trim(), speaker: f[2].value.trim() };
+      if (it.title) items.push(it);
+    });
+    return items.sort(function (a, b) { return (a.time || "99:99") < (b.time || "99:99") ? -1 : (a.time || "99:99") > (b.time || "99:99") ? 1 : 0; });
+  }
+  $("bar-save").addEventListener("click", function () {
+    var la = parseFloat($("a-lat").value), lo = parseFloat($("a-lon").value);
+    if (!isFinite(la) || !isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) { setStatus("bar-status", "Check the gathering point latitude and longitude.", true); return; }
+    saveSettings({
+      title: $("a-title").value.trim(), eyebrow: $("a-eyebrow").value.trim(), closing: $("a-closing").value.trim(),
+      event: { name: $("a-evname").value.trim(), date: $("a-date").value, time: $("a-time").value, venue: $("a-venue").value.trim(), notes: $("a-notes").value.trim() },
+      hub: { name: $("a-hub-name").value.trim() || "Gathering point", lat: la, lon: lo },
+      program: readProgram(),
+      joinOpen: $("a-join-open").checked, pingOpen: $("a-ping-open").checked, showGreetings: $("a-greet").checked
+    }, "bar-status").then(function () { fillAdmin(); });
+  });
+  function addProgRow(it) {
+    var row = el("div", "arow");
+    var t = el("input"); t.type = "time"; t.value = it.time || ""; t.setAttribute("aria-label", "Time");
+    var ti = el("input"); ti.placeholder = "Item, for example Opening prayer"; ti.value = it.title || ""; ti.maxLength = 120; ti.setAttribute("aria-label", "Item");
+    var sp = el("input"); sp.placeholder = "Who (optional)"; sp.value = it.speaker || ""; sp.maxLength = 80; sp.setAttribute("aria-label", "Who");
+    var rm = el("button", "ghost", "Remove"); rm.type = "button"; rm.addEventListener("click", function () { row.remove(); });
+    row.appendChild(t); row.appendChild(ti); row.appendChild(sp); row.appendChild(rm);
+    $("a-prog").appendChild(row);
+  }
+  $("a-add-prog").addEventListener("click", function () { addProgRow({}); });
+  $("form-prog").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var items = [];
+    Array.prototype.forEach.call($("a-prog").children, function (row) {
+      var f = row.querySelectorAll("input");
+      var it = { time: f[0].value, title: f[1].value.trim(), speaker: f[2].value.trim() };
+      if (it.title) items.push(it);
+    });
+    items.sort(function (a, b) { return (a.time || "99:99") < (b.time || "99:99") ? -1 : (a.time || "99:99") > (b.time || "99:99") ? 1 : 0; });
+    saveSettings({ program: items }, "a-prog-status").then(function () { fillAdmin(); });
+  });
+  $("form-event").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    saveSettings({
+      title: $("a-title").value.trim(), eyebrow: $("a-eyebrow").value.trim(), closing: $("a-closing").value.trim(),
+      event: { name: $("a-evname").value.trim(), date: $("a-date").value, time: $("a-time").value, venue: $("a-venue").value.trim(), notes: $("a-notes").value.trim() }
+    }, "a-event-status");
+  });
+  ["a-join-open:joinOpen", "a-ping-open:pingOpen", "a-greet:showGreetings"].forEach(function (pair) {
+    var id = pair.split(":")[0], key = pair.split(":")[1];
+    $(id).addEventListener("change", function () { var o = {}; o[key] = this.checked; saveSettings(o, "a-ctl-status"); });
+  });
+
+  $("a-flag-btn").addEventListener("click", function () { $("a-flag-file").click(); });
+  $("a-flag-file").addEventListener("change", function () {
+    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+    setStatus("a-flag-status", "Preparing the picture…");
+    readImage(f, 480, 320, false, 0.85).then(function (d) {
+      return d.length > 90000 ? readImage(f, 360, 240, false, 0.7) : d;
+    }).then(function (d) { return saveSettings({ flag: d }, "a-flag-status").then(function () { $("a-flag-prev").src = d; }); })
+      .catch(function () { setStatus("a-flag-status", "That picture could not be read. Try another one.", true); });
+  });
+  $("a-flag-rm").addEventListener("click", function () {
+    saveSettings({ flag: "" }, "a-flag-status").then(function () { $("a-flag-prev").src = poleDefault().toDataURL("image/png"); });
+  });
+  function adminPick(lon, lat) {
+    PICK = { lon: lon, lat: lat };
+    $("a-lat").value = lat.toFixed(4); $("a-lon").value = lon.toFixed(4);
+  }
+  function syncPickFromInputs() {
+    var la = parseFloat($("a-lat").value), lo = parseFloat($("a-lon").value);
+    if (isFinite(la) && isFinite(lo)) PICK = { lat: la, lon: lo };
+  }
+  $("a-lat").addEventListener("input", syncPickFromInputs); $("a-lon").addEventListener("input", syncPickFromInputs);
+  $("a-hub-ng").addEventListener("click", function () {
+    $("a-hub-name").value = "Nigeria"; adminPick(CO.NG.lon, CO.NG.lat); mapAdmin.focusZ(CO.NG.lon, CO.NG.lat, 5.5);
+  });
+  $("a-hub-lagos").addEventListener("click", function () {
+    $("a-hub-name").value = LAGOS.name; adminPick(LAGOS.lon, LAGOS.lat); mapAdmin.focusZ(LAGOS.lon, LAGOS.lat, 11);
+  });
+  $("a-search-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var q = $("a-search").value.trim(); if (!q) return;
+    setStatus("a-hub-status", "Searching…");
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (a) {
+        if (!a || !a.length) { setStatus("a-hub-status", "No place found. Try a nearby town, or tap the map instead.", true); return; }
+        var lat = parseFloat(a[0].lat), lon = parseFloat(a[0].lon);
+        adminPick(lon, lat); mapAdmin.focusZ(lon, lat, 12);
+        if (!$("a-hub-name").value.trim()) $("a-hub-name").value = q;
+        setStatus("a-hub-status", "Found: " + String(a[0].display_name || q).slice(0, 90) + ". Tap Save to use it.");
+      })
+      .catch(function () { setStatus("a-hub-status", "Search is not available right now. Tap the map to place the point instead.", true); });
+  });
+  $("form-hub").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var la = parseFloat($("a-lat").value), lo = parseFloat($("a-lon").value);
+    if (!isFinite(la) || !isFinite(lo) || la < -58 || la > 84 || lo < -180 || lo > 180) { setStatus("a-hub-status", "Tap the map, or enter a latitude between -58 and 84 and a longitude between -180 and 180.", true); return; }
+    saveSettings({ hub: { name: $("a-hub-name").value.trim() || "Gathering point", lat: la, lon: lo } }, "a-hub-status");
+  });
+
+  function renderAdminList() {
+    var box = $("a-list"); box.textContent = "";
+    $("a-count").textContent = pins.length ? "(" + pins.length + ")" : "";
+    if (!pins.length) { box.appendChild(el("p", "muted", "No delegates yet.")); return; }
+    pins.slice().sort(function (a, b) { return b.at - a.at; }).forEach(function (p) {
+      var c = CO[p.cc]; if (!c) return;
+      var row = el("div", "d"); row.appendChild(flagEl(p.cc));
+      var n = el("div", "n"); n.appendChild(el("div", null, p.name + " · " + c.name));
+      if (p.greeting) n.appendChild(el("div", "muted", p.greeting));
+      row.appendChild(n);
+      var d = el("button", null, "Remove"); d.type = "button";
+      d.addEventListener("click", function () { hostRpc("host_remove", { p_id: p.id }).then(function () { load(); }).catch(function (e) { setStatus("h-status", failText(e), true); }); });
+      row.appendChild(d); box.appendChild(row);
+    });
+  }
+  function csvCell(v) { v = String(v == null ? "" : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; }
+  $("a-export").addEventListener("click", function () {
+    var lines = ["Name,Country,Greeting,Joined"];
+    pins.slice().sort(function (a, b) { return a.at - b.at; }).forEach(function (p) {
+      lines.push([p.name, CO[p.cc] ? CO[p.cc].name : p.cc, p.greeting, new Date(p.at).toISOString()].map(csvCell).join(","));
+    });
+    var blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "delegates.csv"; document.body.appendChild(a); a.click(); a.remove();
+  });
+  $("form-pin").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var a = $("a-newpin").value.trim(), b = $("a-newpin2").value.trim();
+    if (a.length < 6) { setStatus("a-pin-status", "Use at least 6 characters.", true); return; }
+    if (a !== b) { setStatus("a-pin-status", "The two PINs do not match.", true); return; }
+    hostRpc("host_change_pin", { p_new: a })
+      .then(function () { hostPin = a; lsSet("wr_host", a); $("a-newpin").value = ""; $("a-newpin2").value = ""; setStatus("a-pin-status", "PIN changed. Use the new one next time."); })
+      .catch(function (e) { setStatus("a-pin-status", failText(e), true); });
+  });
+  function wireReset(btnId, label, statusId) {
+    var arm = 0, t = null, b = $(btnId);
+    b.addEventListener("click", function () {
+      if (!arm) {
+        arm = 1; b.textContent = "Tap again to erase every delegate";
+        t = setTimeout(function () { arm = 0; b.textContent = label; }, 5000); return;
+      }
+      clearTimeout(t); arm = 0; b.textContent = label;
+      setStatus(statusId, "Clearing…");
+      hostRpc("host_reset").then(function () {
+        pins = []; FLY = {}; myPin = null; lsSet("wr_pin", ""); layout(); render();
+        setStatus(statusId, "Done. The map is empty and ready for the real event.");
+        renderAdminList && renderAdminList();
+      }).catch(function (e) { setStatus(statusId, failText(e), true); });
+    });
+  }
+  wireReset("a-reset", "Reset the map", "a-reset-status");
+  wireReset("bar-reset", "Clear test data", "bar-status");
+  $("a-copy").addEventListener("click", function () {
+    var url = JOIN_URL || location.href.split("#")[0], note = $("a-copy-note");
+    var done = function () { note.textContent = "Copied."; }, fail = function () { note.textContent = url; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fail); else fail();
+  });
+
   function connect() {
     if (!window.supabase || !CFG.url || !CFG.anonKey) {
       noteLive("The live map is not set up yet. Add the Supabase details at the top of this page.");
       return;
     }
     sb = window.supabase.createClient(CFG.url, CFG.anonKey);
-    load();
+    load(); loadSettings();
     chan = sb.channel("pins-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "pins" }, loadSoon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, loadSettingsSoon)
       .on("broadcast", { event: "ping" }, function (m) {
         var id = m && m.payload && m.payload.id;
         if (typeof id === "string" && id.length < 64) PINGS[id] = Date.now();
       })
       .subscribe();
-    setInterval(load, 15000);
-    var saved = lsGet("wr_host"); if (saved) checkHost(saved);
+    setInterval(function () { load(); loadSettings(); }, 15000);
+    var saved = lsGet("wr_host"); if (saved) checkHost(saved, true);
   }
 
     route();
