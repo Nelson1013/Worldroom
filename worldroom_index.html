@@ -106,7 +106,7 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .photo-pick img, .photo-pick .av-ph { width: 64px; height: 64px; flex: none; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); background: var(--night); }
 .photo-pick .av-ph { display: grid; place-content: center; font-size: 1.6rem; color: var(--ink-2); }
 .flag-prev { width: min(100%, 240px); border-radius: 6px; border: 1px solid var(--line); }
-.map-tools { position: absolute; left: 8px; bottom: 44px; z-index: 3; display: flex; gap: 6px; transition: opacity 0.3s; }
+.map-tools { position: absolute; top: 8px; right: 8px; z-index: 3; display: flex; gap: 6px; transition: opacity 0.3s; }
 .map-tools.gone { opacity: 0; pointer-events: none; }
 .map-tools button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; min-width: 36px; padding: 6px; background: none; border: 0; box-shadow: none; color: var(--ink); filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); }
 .map-tools button.on { color: var(--gold); animation: micpulse 1.4s ease-in-out infinite; }
@@ -114,7 +114,7 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .imm-only { display: none; }
 .screen.immersive { position: fixed; inset: 0; z-index: 15; background: var(--night); display: block; padding: 0; }
 .screen.immersive .screen-top, .screen.immersive .screen-foot { display: none; }
-.screen.immersive .map-box { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
+.screen.immersive .map-box { width: 100vw; height: 100vh; height: 100dvh; border: 0; border-radius: 0; }
 .screen.immersive canvas#map-screen { width: 100%; height: 100%; aspect-ratio: auto; }
 .screen.immersive .imm-only { display: flex; position: absolute; left: 14px; top: 12px; z-index: 3; gap: 16px; padding: 6px 12px; border-radius: 10px; background: color-mix(in srgb, var(--night) 72%, transparent); }
 .float .fg { font-family: var(--display); font-size: clamp(1rem, 1.8vw, 1.5rem); color: var(--gold); overflow-wrap: anywhere; line-height: 1.2; }
@@ -296,6 +296,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
       <label class="toggle" for="a-ping-open"><span>Ping button is on</span><input type="checkbox" id="a-ping-open"></label>
       <label for="a-spread">Dot ripple spread <b id="a-spread-v"></b><input type="range" id="a-spread" min="0.5" max="4" step="0.1"></label>
       <label for="a-reach">Sound ripple reach <b id="a-reach-v"></b><input type="range" id="a-reach" min="20" max="100" step="5"></label>
+      <label class="toggle" for="a-realfs"><span>Use the browser's own full screen (it shows a notice at the bottom)</span><input type="checkbox" id="a-realfs"></label>
       <label class="toggle" for="a-stars"><span>Pins are twinkling stars (off = glowing dots)</span><input type="checkbox" id="a-stars"></label>
       <label class="toggle" for="a-greet"><span>Show greetings on the screen and keepsake</span><input type="checkbox" id="a-greet"></label>
       <p class="status" id="a-ctl-status" aria-live="polite"></p>
@@ -533,7 +534,7 @@ window.SUPABASE_CONFIG = {
   /* ---------- Nigeria is where everyone gathers ---------- */
   var LAGOS = { name: "Loveworld Kingdom", lat: 6.5244, lon: 3.3792, r: 700 };
   var HUB = { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon, r: LAGOS.r }, PICK = null;
-  var RS = 1, SR = 100, BOOST = {};   // dot ripple spread, sound ripple reach (%), dots with a bigger ripple   // the host moves this from the Admin page
+  var RS = 1, SR = 100, BOOST = {}, REAL_FS = false;   // dot ripple spread, sound ripple reach (%), dots with a bigger ripple   // the host moves this from the Admin page
   function isHome(cc) { return cc === "NG" && Math.hypot(HUB.lat - CO.NG.lat, HUB.lon - CO.NG.lon) < 7; }
   var POS = {}, GROUPS = {}, FLY = {}, RINGS = [];
   function layout() {
@@ -1343,7 +1344,7 @@ window.SUPABASE_CONFIG = {
   function setImmersive(on) {
     var v = $("view-screen"); v.classList.toggle("immersive", on);
     setFullIcon(on); tools && showTools();
-    if (on) { if (v.requestFullscreen) v.requestFullscreen().catch(function () {}); }
+    if (on) { if (REAL_FS && v.requestFullscreen) v.requestFullscreen().catch(function () {}); }
     else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
   }
   function toggleImmersive() { setImmersive(!$("view-screen").classList.contains("immersive")); }
@@ -1490,6 +1491,7 @@ window.SUPABASE_CONFIG = {
     var h = SET.hub;
     if (h && isFinite(h.lat) && isFinite(h.lon)) { HUB.lat = +h.lat; HUB.lon = +h.lon; HUB.name = h.name || LAGOS.name; HUB.r = Math.max(100, Math.min(5000, +h.r || LAGOS.r)); }
     else { HUB.lat = LAGOS.lat; HUB.lon = LAGOS.lon; HUB.name = LAGOS.name; HUB.r = LAGOS.r; }
+    REAL_FS = SET.realFullscreen === true;
     RS = Math.max(0.5, Math.min(4, +SET.rippleSpread || 1)); SR = Math.max(20, Math.min(100, +SET.soundReach || 100));
     BOOST = {}; (Array.isArray(SET.boost) ? SET.boost : []).forEach(function (id) { if (typeof id === "string") BOOST[id] = 1; });
     var tx = SET.text || {};
@@ -1568,6 +1570,7 @@ window.SUPABASE_CONFIG = {
     $("a-evname").value = ev.name || ""; $("a-date").value = ev.date || ""; $("a-time").value = ev.time || "";
     $("a-venue").value = ev.venue || ""; $("a-notes").value = ev.notes || "";
     $("a-join-open").checked = SET.joinOpen !== false; $("a-ping-open").checked = SET.pingOpen !== false; $("a-spread").value = RS; $("a-spread-v").textContent = "×" + RS; $("a-reach").value = SR; $("a-reach-v").textContent = SR + "%";
+    $("a-realfs").checked = SET.realFullscreen === true;
     $("a-greet").checked = SET.showGreetings !== false; $("a-stars").checked = SET.starPins !== false;
     $("a-hub-name").value = h.name || ""; $("a-lat").value = h.lat; $("a-lon").value = h.lon; $("a-hub-r").value = h.r || LAGOS.r;
     PICK = { lat: +h.lat, lon: +h.lon };
@@ -1592,7 +1595,7 @@ window.SUPABASE_CONFIG = {
       event: { name: $("a-evname").value.trim(), date: $("a-date").value, time: $("a-time").value, venue: $("a-venue").value.trim(), notes: $("a-notes").value.trim() },
       hub: { name: $("a-hub-name").value.trim() || LAGOS.name, lat: la, lon: lo, r: Math.max(100, Math.min(5000, parseFloat($("a-hub-r").value) || LAGOS.r)) },
       program: readProgram(), text: readText(),
-      rippleSpread: parseFloat($("a-spread").value) || 1, soundReach: parseFloat($("a-reach").value) || 100, joinOpen: $("a-join-open").checked, pingOpen: $("a-ping-open").checked, showGreetings: $("a-greet").checked, starPins: $("a-stars").checked
+      rippleSpread: parseFloat($("a-spread").value) || 1, soundReach: parseFloat($("a-reach").value) || 100, joinOpen: $("a-join-open").checked, pingOpen: $("a-ping-open").checked, showGreetings: $("a-greet").checked, starPins: $("a-stars").checked, realFullscreen: $("a-realfs").checked
     }, "bar-status").then(function () { fillAdmin(); });
   });
   function addProgRow(it) {
@@ -1623,7 +1626,7 @@ window.SUPABASE_CONFIG = {
       event: { name: $("a-evname").value.trim(), date: $("a-date").value, time: $("a-time").value, venue: $("a-venue").value.trim(), notes: $("a-notes").value.trim() }
     }, "a-event-status");
   });
-  ["a-join-open:joinOpen", "a-ping-open:pingOpen", "a-greet:showGreetings", "a-stars:starPins"].forEach(function (pair) {
+  ["a-join-open:joinOpen", "a-ping-open:pingOpen", "a-greet:showGreetings", "a-stars:starPins", "a-realfs:realFullscreen"].forEach(function (pair) {
     var id = pair.split(":")[0], key = pair.split(":")[1];
     $(id).addEventListener("change", function () { var o = {}; o[key] = this.checked; saveSettings(o, "a-ctl-status"); });
   });
