@@ -107,8 +107,9 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .photo-pick .av-ph { display: grid; place-content: center; font-size: 1.6rem; color: var(--ink-2); }
 .flag-prev { width: min(100%, 240px); border-radius: 6px; border: 1px solid var(--line); }
 .map-tools { position: absolute; top: 8px; right: 8px; z-index: 3; display: flex; gap: 8px; }
-.map-tools button { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 6px 10px; font-size: 0.8rem; background: color-mix(in srgb, var(--night) 72%, transparent); }
-.map-tools button.on { border-color: var(--gold); color: var(--gold); }
+.map-tools button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; min-width: 36px; padding: 6px; background: none; border: 0; box-shadow: none; color: var(--ink); filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); }
+.map-tools button.on { color: var(--gold); animation: micpulse 1.4s ease-in-out infinite; }
+@keyframes micpulse { 50% { opacity: 0.55; } }
 .imm-only { display: none; }
 .screen.immersive { position: fixed; inset: 0; z-index: 15; background: var(--night); display: block; padding: 0; }
 .screen.immersive .screen-top, .screen.immersive .screen-foot { display: none; }
@@ -225,7 +226,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
   </div>
   <div class="map-box">
     <canvas id="map-screen" aria-label="Live world map"></canvas>
-    <div class="map-tools"><button type="button" class="ghost" id="map-audio">Listen</button><button type="button" class="ghost" id="map-full" aria-label="Full screen" title="Full screen"></button></div>
+    <div class="map-tools"><button type="button" class="ghost" id="map-audio" aria-label="Listen" title="Listen"></button><button type="button" class="ghost" id="map-full" aria-label="Full screen" title="Full screen"></button></div>
     <div class="stat imm-only" id="stat-imm"></div>
     <div class="floaters" id="floaters"></div>
   </div>
@@ -641,12 +642,11 @@ window.SUPABASE_CONFIG = {
   function poleDefault() {
     if (POLE.def) return POLE.def;
     var c = document.createElement("canvas"); c.width = 300; c.height = 200; var g = c.getContext("2d");
-    var gr = g.createLinearGradient(0, 0, 300, 200); gr.addColorStop(0, "#1b5fe0"); gr.addColorStop(1, "#0a2a7a");
-    g.fillStyle = gr; g.fillRect(0, 0, 300, 200);
-    g.strokeStyle = "#ffffff"; g.lineWidth = 6; g.strokeRect(9, 9, 282, 182);
-    g.fillStyle = "#ffffff"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "800 36px Inter, system-ui, sans-serif"; g.fillText("LOVEWORLD", 150, 80);
-    g.font = "700 32px Inter, system-ui, sans-serif"; g.fillText("NATIONS", 150, 124);
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, 150, 200);          // white side
+    g.fillStyle = "#6ec1f2"; g.fillRect(150, 0, 150, 200);        // sky blue side
+    g.fillStyle = "#0b3b8c"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = "800 34px Inter, system-ui, sans-serif"; g.fillText("LOVEWORLD", 150, 80);
+    g.font = "700 30px Inter, system-ui, sans-serif"; g.fillText("NATIONS", 150, 124);
     POLE.def = c; return c;
   }
   function setPoleFlag(src) {
@@ -1355,7 +1355,13 @@ window.SUPABASE_CONFIG = {
     if (!document.fullscreenElement) { $("view-screen").classList.remove("immersive"); setFullIcon(false); }
   });
   $("hub-btn").addEventListener("click", function () { mapJoin.focusNigeria(); });
-  function audioBtn(txt) { var b = $("map-audio"); b.textContent = txt || (AUD.on ? "Stop listening" : "Listen"); b.classList.toggle("on", AUD.on); }
+  var ICON_MIC = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>';
+  function audioBtn(msg) {
+    var b = $("map-audio");
+    if (msg) b.textContent = msg; else b.innerHTML = ICON_MIC;
+    b.title = AUD.on ? "Stop listening" : "Listen"; b.setAttribute("aria-label", b.title); b.classList.toggle("on", AUD.on);
+  }
+  audioBtn();
   function stopAudio() {
     try { if (AUD.stream) AUD.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     try { if (AUD.ctx) AUD.ctx.close(); } catch (e) {}
