@@ -106,7 +106,8 @@ body[data-view="screen"] { padding-block: 14px 14px; }
 .photo-pick img, .photo-pick .av-ph { width: 64px; height: 64px; flex: none; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); background: var(--night); }
 .photo-pick .av-ph { display: grid; place-content: center; font-size: 1.6rem; color: var(--ink-2); }
 .flag-prev { width: min(100%, 240px); border-radius: 6px; border: 1px solid var(--line); }
-.map-tools { position: absolute; top: 8px; right: 8px; z-index: 3; display: flex; gap: 8px; }
+.map-tools { position: absolute; left: 8px; bottom: 44px; z-index: 3; display: flex; gap: 6px; transition: opacity 0.3s; }
+.map-tools.gone { opacity: 0; pointer-events: none; }
 .map-tools button { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; min-width: 36px; padding: 6px; background: none; border: 0; box-shadow: none; color: var(--ink); filter: drop-shadow(0 1px 3px rgba(0,0,0,0.85)); }
 .map-tools button.on { color: var(--gold); animation: micpulse 1.4s ease-in-out infinite; }
 @keyframes micpulse { 50% { opacity: 0.55; } }
@@ -293,6 +294,8 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
       <h2>Live controls</h2>
       <label class="toggle" for="a-join-open"><span>Joining is open</span><input type="checkbox" id="a-join-open"></label>
       <label class="toggle" for="a-ping-open"><span>Ping button is on</span><input type="checkbox" id="a-ping-open"></label>
+      <label for="a-spread">Dot ripple spread <b id="a-spread-v"></b><input type="range" id="a-spread" min="0.5" max="4" step="0.1"></label>
+      <label for="a-reach">Sound ripple reach <b id="a-reach-v"></b><input type="range" id="a-reach" min="20" max="100" step="5"></label>
       <label class="toggle" for="a-stars"><span>Pins are twinkling stars (off = glowing dots)</span><input type="checkbox" id="a-stars"></label>
       <label class="toggle" for="a-greet"><span>Show greetings on the screen and keepsake</span><input type="checkbox" id="a-greet"></label>
       <p class="status" id="a-ctl-status" aria-live="polite"></p>
@@ -321,7 +324,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
 
     <section class="card">
       <h2>Gathering point</h2>
-      <p class="muted">Where every flag lands. Tap the map to place it, or search for a place.</p>
+      <p class="muted">The Loveworld Kingdom grounds, where every flag lands. Tap the map to place the centre, then set how far the grounds reach. Every dot and star stays inside the border.</p>
       <form id="a-search-form" style="display:flex;gap:8px"><input id="a-search" placeholder="Search a place" aria-label="Search a place"><button type="submit" class="ghost">Search</button></form>
       <div class="map-box"><canvas id="map-admin" aria-label="Map for choosing the gathering point"></canvas></div>
       <form id="form-hub" autocomplete="off">
@@ -329,6 +332,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
           <label for="a-hub-name">Name<input id="a-hub-name" maxlength="60" placeholder="Lagos"></label>
           <label for="a-lat">Latitude<input id="a-lat" inputmode="decimal"></label>
           <label for="a-lon">Longitude<input id="a-lon" inputmode="decimal"></label>
+          <label for="a-hub-r">Grounds radius (metres)<input id="a-hub-r" type="number" min="100" max="5000" step="50" placeholder="700"></label>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="submit">Save gathering point</button><button type="button" class="ghost" id="a-hub-lagos">Use Lagos</button><button type="button" class="ghost" id="a-hub-ng">Use the centre of Nigeria</button></div>
         <p class="status" id="a-hub-status" aria-live="polite"></p>
@@ -345,14 +349,7 @@ button.danger { background: transparent; color: var(--danger); border: 1px solid
       </form>
     </section>
 
-    <section class="card">
-      <h2>Flag on the pole</h2>
-      <p class="muted">The big flag that stands at the gathering point. Upload the Loveworld Nations flag as a picture. Until you do, a plain placeholder shows.</p>
-      <img class="flag-prev" id="a-flag-prev" alt="Flag preview">
-      <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" id="a-flag-btn">Choose flag picture</button><button type="button" class="ghost" id="a-flag-rm">Use the placeholder</button></div>
-      <input type="file" id="a-flag-file" accept="image/*" hidden>
-      <p class="status" id="a-flag-status" aria-live="polite"></p>
-    </section>
+    
 
     <section class="card">
       <h2>Programme</h2>
@@ -534,18 +531,20 @@ window.SUPABASE_CONFIG = {
 
   /* ---------- map drawing ---------- */
   /* ---------- Nigeria is where everyone gathers ---------- */
-  var LAGOS = { name: "Lagos", lat: 6.5244, lon: 3.3792 };
-  var HUB = { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon }, PICK = null;   // the host moves this from the Admin page
+  var LAGOS = { name: "Loveworld Kingdom", lat: 6.5244, lon: 3.3792, r: 700 };
+  var HUB = { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon, r: LAGOS.r }, PICK = null;
+  var RS = 1, SR = 100, BOOST = {};   // dot ripple spread, sound ripple reach (%), dots with a bigger ripple   // the host moves this from the Admin page
   function isHome(cc) { return cc === "NG" && Math.hypot(HUB.lat - CO.NG.lat, HUB.lon - CO.NG.lon) < 7; }
   var POS = {}, GROUPS = {}, FLY = {}, RINGS = [];
   function layout() {
     POS = {}; GROUPS = {};
     var all = pins.filter(function (p) { return CO[p.cc]; })
       .sort(function (x, y) { return (x.at - y.at) || (x.id < y.id ? -1 : 1); });
-    var n = all.length, sp = Math.min(0.012, 0.07 / Math.sqrt(Math.max(n, 1)));   // degrees: everyone sits within a few km of the gathering point
+    var n = all.length, cap = Math.max(n, 60), cl = Math.cos(HUB.lat * Math.PI / 180) || 1;
+    var rLat = HUB.r / 110574, rLon = HUB.r / (111320 * cl);          // the grounds, in degrees
     all.forEach(function (p, i) {
-      var r = sp * Math.sqrt(i), th = i * 2.399963;
-      POS[p.id] = [HUB.lon + Math.cos(th) * r, HUB.lat + Math.sin(th) * r];
+      var u = 0.9 * Math.sqrt((i + 0.5) / cap), th = i * 2.399963;     // everyone stays inside the border
+      POS[p.id] = [HUB.lon + Math.cos(th) * u * rLon, HUB.lat + Math.sin(th) * u * rLat];
       var g = GROUPS[p.cc] || (GROUPS[p.cc] = { n: 0, c: CO[p.cc] });
       g.n++;
     });
@@ -622,10 +621,11 @@ window.SUPABASE_CONFIG = {
     ["wallLede", "wall-lede", "Every country and greeting from the room, in one place to keep and share.", "Keepsake page intro"]
   ];
   /* ---------- listening to the room ---------- */
-  var AUD = { on: false, ctx: null, an: null, buf: null, stream: null, floor: 0.01, lvl: 0, R: 0, last: 0 };
+  var AUD = { on: false, ctx: null, an: null, buf: null, stream: null, floor: 0.01, lvl: 0, R: 0, last: 0, lastRing: 0, rings: [] };
   function audioStep(maxR) {
     var now = performance.now(), dt = Math.min(0.1, (now - AUD.last) / 1000 || 0.016); AUD.last = now;
-    if (!AUD.on) { AUD.lvl *= 0.9; AUD.R = Math.max(0, AUD.R - maxR * 0.5 * dt); return; }
+    var cap = maxR * SR / 100;
+    if (!AUD.on) { AUD.lvl *= 0.9; AUD.R = Math.max(0, AUD.R - cap * 0.4 * dt); return; }
     AUD.an.getFloatTimeDomainData(AUD.buf);
     var sum = 0, i; for (i = 0; i < AUD.buf.length; i++) sum += AUD.buf[i] * AUD.buf[i];
     var rms = Math.sqrt(sum / AUD.buf.length);
@@ -633,27 +633,13 @@ window.SUPABASE_CONFIG = {
     AUD.floor = Math.max(AUD.floor, 0.003);
     var thr = AUD.floor * 2.2 + 0.006, lv = Math.max(0, Math.min(1, (rms - thr) / 0.12));
     AUD.lvl += (lv - AUD.lvl) * (lv > AUD.lvl ? 0.5 : 0.08);
-    if (AUD.lvl > 0.05) AUD.R = Math.min(maxR, AUD.R + maxR * (0.06 + AUD.lvl * 0.3) * dt);   // sound builds the ripple; keep it going and it fills the screen
-    else AUD.R = Math.max(0, AUD.R - maxR * 0.18 * dt);
-  }
-
-  /* ---------- the flag on the pole ---------- */
-  var POLE = { img: null, src: "", def: null };
-  function poleDefault() {
-    if (POLE.def) return POLE.def;
-    var c = document.createElement("canvas"); c.width = 300; c.height = 200; var g = c.getContext("2d");
-    g.fillStyle = "#ffffff"; g.fillRect(0, 0, 150, 200);          // white side
-    g.fillStyle = "#6ec1f2"; g.fillRect(150, 0, 150, 200);        // sky blue side
-    g.fillStyle = "#0b3b8c"; g.textAlign = "center"; g.textBaseline = "middle";
-    g.font = "800 34px Inter, system-ui, sans-serif"; g.fillText("LOVEWORLD", 150, 80);
-    g.font = "700 30px Inter, system-ui, sans-serif"; g.fillText("NATIONS", 150, 124);
-    POLE.def = c; return c;
-  }
-  function setPoleFlag(src) {
-    src = (typeof src === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(src)) ? src : "";
-    if (src === POLE.src) return;
-    POLE.src = src; POLE.img = null;
-    if (src) { var im = new Image(); im.onload = function () { if (POLE.src === src) POLE.img = im; }; im.src = src; }
+    if (AUD.lvl > 0.05) {
+      AUD.R = Math.min(cap, AUD.R + cap * (0.06 + AUD.lvl * 0.3) * dt);          // the longer the sound, the farther each new ripple travels
+      if (now - AUD.lastRing > 820 - AUD.lvl * 460) {                             // a new ripple rises while the earlier ones fade
+        AUD.lastRing = now; var rR = Math.max(cap * 0.12, AUD.R); AUD.rings.push({ t0: Date.now(), R: rR, a: 0.45 + 0.55 * AUD.lvl, life: 1800 + 2200 * Math.min(1, rR / Math.max(cap, 1)) });
+        if (AUD.rings.length > 16) AUD.rings.shift();
+      }
+    } else AUD.R = Math.max(0, AUD.R - cap * 0.35 * dt);                          // only the build-up resets; ripples already out keep fading
   }
 
   /* ---------- profile photos (small, fetched once per person) ---------- */
@@ -849,22 +835,36 @@ window.SUPABASE_CONFIG = {
         }
       }
 
+      // 2a. the grounds of Loveworld Kingdom: a bordered area that pins and stars stay inside
+      var gr0 = null;
+      (function () {
+        var gc = ll(HUB.lon, HUB.lat), ppd0 = W * k / 360, cl0 = Math.cos(HUB.lat * Math.PI / 180) || 1;
+        var rx = Math.max(5, HUB.r / (111320 * cl0) * ppd0), ry = Math.max(5, HUB.r / 110574 * ppd0);
+        if (gc[0] + rx < -20 || gc[0] - rx > W + 20 || gc[1] + ry < -20 || gc[1] - ry > H + 20) return;
+        gr0 = { x: gc[0], y: gc[1], rx: rx, ry: ry };
+        ctx.save();
+        var fa = Math.max(0.05, 0.14 - tileA * 0.06);
+        ctx.fillStyle = "rgba(244,194,91," + fa.toFixed(3) + ")"; ctx.beginPath(); ctx.ellipse(gc[0], gc[1], rx, ry, 0, 0, 6.2832); ctx.fill();
+        ctx.shadowColor = "rgba(244,194,91,0.7)"; ctx.shadowBlur = 10;
+        ctx.strokeStyle = "rgba(244,194,91,0.95)"; ctx.lineWidth = Math.max(1.5, Math.min(3, rx / 60)); ctx.setLineDash(rx > 40 ? [10, 7] : []);
+        ctx.beginPath(); ctx.ellipse(gc[0], gc[1], rx, ry, 0, 0, 6.2832); ctx.stroke();
+        ctx.restore();
+      })();
+
       // 2b. sound ripple spreading from the gathering point
       if (opts.screen) {
         var hq = ll(HUB.lon, HUB.lat), maxR = Math.max(Math.hypot(hq[0], hq[1]), Math.hypot(W - hq[0], hq[1]), Math.hypot(hq[0], H - hq[1]), Math.hypot(W - hq[0], H - hq[1])) + 20;
         audioStep(maxR);
-        if (AUD.R > 3) {
-          var RR = AUD.R, al = Math.min(1, 0.4 + AUD.lvl);
-          var gl = ctx.createRadialGradient(hq[0], hq[1], 0, hq[0], hq[1], RR);
-          gl.addColorStop(0, "rgba(244,194,91," + (0.22 * al).toFixed(3) + ")"); gl.addColorStop(1, "rgba(244,194,91,0)");
-          ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(hq[0], hq[1], RR, 0, 6.2832); ctx.fill();
-          for (var ri = 0; ri < 5; ri++) {
-            var ru = ((T / (2200 - AUD.lvl * 900) + ri / 5) % 1), rr2 = RR * ru;
-            ctx.strokeStyle = "rgba(255,232,170," + (0.75 * al * Math.pow(1 - ru, 1.3)).toFixed(3) + ")";
-            ctx.lineWidth = 1.5 + (1 - ru) * 4; ctx.beginPath(); ctx.arc(hq[0], hq[1], rr2, 0, 6.2832); ctx.stroke();
-          }
-          ctx.strokeStyle = "rgba(255,255,255," + (0.6 * al).toFixed(3) + ")"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(hq[0], hq[1], RR, 0, 6.2832); ctx.stroke();
-        }
+        AUD.rings = AUD.rings.filter(function (rg) { return T - rg.t0 < rg.life; });
+        AUD.rings.forEach(function (rg) {
+          var u = (T - rg.t0) / rg.life; if (u < 0 || u >= 1) return;
+          var r0 = rg.R * (1 - Math.pow(1 - u, 2)), fade = Math.pow(1 - u, 1.4);
+          var gl = ctx.createRadialGradient(hq[0], hq[1], r0 * 0.6, hq[0], hq[1], r0 + 1);
+          gl.addColorStop(0, "rgba(244,194,91,0)"); gl.addColorStop(1, "rgba(244,194,91," + (0.16 * rg.a * fade).toFixed(3) + ")");
+          ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(hq[0], hq[1], r0 + 1, 0, 6.2832); ctx.fill();
+          ctx.strokeStyle = "rgba(255,232,170," + (0.85 * rg.a * fade).toFixed(3) + ")"; ctx.lineWidth = 2 + (1 - u) * 5;
+          ctx.beginPath(); ctx.arc(hq[0], hq[1], r0, 0, 6.2832); ctx.stroke();
+        });
       }
 
       // 3. country markers: where each delegate comes from
@@ -911,10 +911,11 @@ window.SUPABASE_CONFIG = {
           ctx.beginPath(); ctx.arc(s[0], s[1], Math.max(5, W / 170) * (zoomed ? 1.4 : 1), 0, 6.2832); ctx.stroke();
         }
         if (!reduced) {
-          var per = mine ? 1400 : 3800, ph = ((T + (h % per)) % per) / per, maxR = zoomed ? Math.min(W / 32, 24) : W / 32;
-          ctx.strokeStyle = "rgba(244,194,91," + ((mine ? 0.75 : 0.5) / dens * (1 - ph)).toFixed(3) + ")";
-          ctx.lineWidth = mine ? 2 : 1.5;
+          var big = !!BOOST[pin.id], per = mine ? 1400 : (big ? 2400 : 3800), ph = ((T + (h % per)) % per) / per, maxR = (zoomed ? Math.min(W / 32, 24) : W / 32) * RS * (big ? 2.4 : 1);
+          ctx.strokeStyle = "rgba(244,194,91," + (Math.min(1, (mine ? 0.75 : big ? 0.85 : 0.5)) / dens * (1 - ph)).toFixed(3) + ")";
+          ctx.lineWidth = (mine || big) ? 2.2 : 1.5;
           ctx.beginPath(); ctx.arc(s[0], s[1], W / 200 + ph * maxR * (mine ? 1.15 : 1), 0, 6.2832); ctx.stroke();
+          if (big) { var ph2 = (ph + 0.5) % 1; ctx.strokeStyle = "rgba(255,232,170," + (0.6 / dens * (1 - ph2)).toFixed(3) + ")"; ctx.beginPath(); ctx.arc(s[0], s[1], W / 200 + ph2 * maxR, 0, 6.2832); ctx.stroke(); }
           var pa = PINGS[pin.id];
           if (pa) {
             var pt = (T - pa) / 4000;
@@ -923,7 +924,7 @@ window.SUPABASE_CONFIG = {
                 var q = pt - q2 * 0.18;
                 if (q > 0 && q < 1) {
                   ctx.strokeStyle = "rgba(244,194,91," + (0.95 * (1 - q)).toFixed(3) + ")";
-                  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + q * W / 10, 0, 6.2832); ctx.stroke();
+                  ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + q * W / 10 * RS, 0, 6.2832); ctx.stroke();
                 }
               }
             }
@@ -933,7 +934,7 @@ window.SUPABASE_CONFIG = {
             if (land >= 0 && land < 5000) {
               var t5 = land / 5000;
               ctx.strokeStyle = "rgba(244,194,91," + (0.9 * (1 - t5)).toFixed(3) + ")";
-              ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + t5 * W / 14, 0, 6.2832); ctx.stroke();
+              ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s[0], s[1], W / 140 + t5 * W / 14 * RS, 0, 6.2832); ctx.stroke();
             }
           }
         }
@@ -980,18 +981,14 @@ window.SUPABASE_CONFIG = {
         if (dot) { ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(sx, sy, 2, 0, 6.2832); ctx.fill(); }
         ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.globalAlpha = 1;
       }
-      // the flag on its pole, standing at the gathering point
-      var hp = ll(HUB.lon, HUB.lat);
-      if (hp[0] > -140 && hp[0] < W + 140 && hp[1] > -20 && hp[1] < H + 220) {
-        var poleH = Math.max(56, Math.min(130, W / 14)) * Math.min(1, 0.5 + 0.1 * Math.log(k) / Math.LN2), pw = Math.max(2, poleH / 24), flW = poleH * 0.9, flH = flW * 0.64;
-        var psrc = POLE.img || poleDefault(), piw = POLE.img ? POLE.img.naturalWidth : psrc.width, pih = POLE.img ? POLE.img.naturalHeight : psrc.height;
-        if (POLE.img && piw && pih) flH = flW * pih / piw;
-        ctx.save(); ctx.fillStyle = "rgba(0,0,0,0.35)"; ctx.beginPath(); ctx.ellipse(hp[0], hp[1], pw * 2.4, pw * 1.1, 0, 0, 6.2832); ctx.fill(); ctx.restore();
-        ctx.strokeStyle = "#e9e3d2"; ctx.lineWidth = pw; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(hp[0], hp[1]); ctx.lineTo(hp[0], hp[1] - poleH); ctx.stroke(); ctx.lineCap = "butt";
-        ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(hp[0], hp[1] - poleH, pw * 1.3, 0, 6.2832); ctx.fill();
-        drawWave(psrc, piw, pih, hp[0] + pw / 2, hp[1] - poleH + pw, flW, flH, T, 0.6, 0.06);
-        boxes.push([hp[0] - pw * 2, hp[1] - poleH - pw * 2, hp[0] + flW + pw * 2, hp[1] - poleH + flH + pw * 2]);
-        boxes.push([hp[0] - pw * 2.5, hp[1] - poleH, hp[0] + pw * 2.5, hp[1] + pw * 2]);
+      // Loveworld Kingdom grounds: the name sits on top of the border once you are close enough to read it
+      if (gr0 && gr0.rx > 70) {
+        ctx.font = "700 " + Math.max(12, Math.min(26, W / 70)) + "px Inter, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+        var lbl = String(HUB.name || "Loveworld Kingdom"), lw0 = ctx.measureText(lbl).width, lx0 = gr0.x, ly0 = gr0.y - gr0.ry - 10;
+        if (ly0 < 20) ly0 = gr0.y - gr0.ry + 26;
+        ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,0.65)"; ctx.strokeText(lbl, lx0, ly0);
+        ctx.fillStyle = C.gold; ctx.fillText(lbl, lx0, ly0); ctx.textAlign = "left";
+        boxes.push([lx0 - lw0 / 2 - 4, ly0 - 24, lx0 + lw0 / 2 + 4, ly0 + 6]);
       }
       if (!zoomed) {
         var sorted = pins.filter(function (p) { return POS[p.id]; }).sort(function (a, b2) { return b2.at - a.at; }), fan = [];
@@ -1130,7 +1127,7 @@ window.SUPABASE_CONFIG = {
       zoomCenter: function (ratio) { anim = null; animateTo(V.cx, V.cy, V.k * ratio); },
       reset: function () { animateTo(0.5, 0.5, 1); },
       focusMe: function () { var pos = myPin && POS[myPin.id]; if (pos) focusZ(pos[0], pos[1], 15); },
-      focusNigeria: function () { focusZ(HUB.lon, HUB.lat, 12.5); },
+      focusNigeria: function () { var rd = HUB.r / 110574, ppd = 0.72 * Math.min(W, H) / (2 * rd); animateTo(bx(HUB.lon) / W, by(HUB.lat) / MH, ppd * 360 / W); },
       focusZ: focusZ,
       focusLL: focusLL
     };
@@ -1345,12 +1342,30 @@ window.SUPABASE_CONFIG = {
   setFullIcon(false);
   function setImmersive(on) {
     var v = $("view-screen"); v.classList.toggle("immersive", on);
-    setFullIcon(on);
+    setFullIcon(on); tools && showTools();
     if (on) { if (v.requestFullscreen) v.requestFullscreen().catch(function () {}); }
     else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
   }
   function toggleImmersive() { setImmersive(!$("view-screen").classList.contains("immersive")); }
   $("map-full").addEventListener("click", toggleImmersive);
+  /* the two icons step out of the way: tap the map to hide or show them; in full screen they hide by themselves */
+  var toolsTimer = null, tools = document.querySelector(".map-tools");
+  function showTools() {
+    tools.classList.remove("gone"); clearTimeout(toolsTimer);
+    if ($("view-screen").classList.contains("immersive")) toolsTimer = setTimeout(function () { tools.classList.add("gone"); }, 3000);
+  }
+  (function () {
+    var box = $("map-screen").parentNode, down = null;
+    box.addEventListener("pointerdown", function (e) { down = { x: e.clientX, y: e.clientY, t: Date.now() }; });
+    box.addEventListener("pointerup", function (e) {
+      if (!down || tools.contains(e.target)) { down = null; return; }
+      var tap = Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && Date.now() - down.t < 450; down = null;
+      if (!tap) return;
+      if ($("view-screen").classList.contains("immersive")) showTools();
+      else tools.classList.toggle("gone");
+    });
+    box.addEventListener("pointermove", function () { if ($("view-screen").classList.contains("immersive")) showTools(); });
+  })();
   document.addEventListener("fullscreenchange", function () {
     if (!document.fullscreenElement) { $("view-screen").classList.remove("immersive"); setFullIcon(false); }
   });
@@ -1365,7 +1380,7 @@ window.SUPABASE_CONFIG = {
   function stopAudio() {
     try { if (AUD.stream) AUD.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     try { if (AUD.ctx) AUD.ctx.close(); } catch (e) {}
-    AUD.on = false; AUD.stream = null; AUD.ctx = null; audioBtn();
+    AUD.on = false; AUD.stream = null; AUD.ctx = null; audioBtn();   // rings already out finish fading
   }
   function toggleAudio() {
     if (AUD.on) { stopAudio(); return; }
@@ -1473,11 +1488,13 @@ window.SUPABASE_CONFIG = {
     document.title = title;
     $("closing-title").textContent = SET.closing || "Loveworld Kingdom says thank you.";
     var h = SET.hub;
-    if (h && isFinite(h.lat) && isFinite(h.lon)) { HUB.lat = +h.lat; HUB.lon = +h.lon; HUB.name = h.name || "Gathering point"; }
-    else { HUB.lat = LAGOS.lat; HUB.lon = LAGOS.lon; HUB.name = LAGOS.name; }
+    if (h && isFinite(h.lat) && isFinite(h.lon)) { HUB.lat = +h.lat; HUB.lon = +h.lon; HUB.name = h.name || LAGOS.name; HUB.r = Math.max(100, Math.min(5000, +h.r || LAGOS.r)); }
+    else { HUB.lat = LAGOS.lat; HUB.lon = LAGOS.lon; HUB.name = LAGOS.name; HUB.r = LAGOS.r; }
+    RS = Math.max(0.5, Math.min(4, +SET.rippleSpread || 1)); SR = Math.max(20, Math.min(100, +SET.soundReach || 100));
+    BOOST = {}; (Array.isArray(SET.boost) ? SET.boost : []).forEach(function (id) { if (typeof id === "string") BOOST[id] = 1; });
     var tx = SET.text || {};
     TXT.forEach(function (t) { $(t[1]).textContent = (typeof tx[t[0]] === "string" && tx[t[0]].trim()) || t[2]; });
-    setPoleFlag(SET.flag); PIN_STYLE = SET.starPins === false ? "dot" : "star";
+    PIN_STYLE = SET.starPins === false ? "dot" : "star";
     layout();
     var ev = SET.event || {}, prog = Array.isArray(SET.program) ? SET.program : [];
     var meta = [fmtDate(ev.date), ev.time, ev.venue].filter(Boolean).join(" · ");
@@ -1546,13 +1563,13 @@ window.SUPABASE_CONFIG = {
   $("form-text").addEventListener("submit", function (ev) { ev.preventDefault(); saveSettings({ text: readText() }, "a-text-status"); });
   function fillAdmin() {
     buildTextFields(); var tx0 = SET.text || {}; TXT.forEach(function (t) { $("a-tx-" + t[0]).value = tx0[t[0]] || ""; });
-    var ev = SET.event || {}, h = SET.hub || { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon };
-    $("a-flag-prev").src = SET.flag || poleDefault().toDataURL("image/png");
+    var ev = SET.event || {}, h = SET.hub || { name: LAGOS.name, lat: LAGOS.lat, lon: LAGOS.lon, r: LAGOS.r };
     $("a-title").value = SET.title || ""; $("a-eyebrow").value = SET.eyebrow || ""; $("a-closing").value = SET.closing || "";
     $("a-evname").value = ev.name || ""; $("a-date").value = ev.date || ""; $("a-time").value = ev.time || "";
     $("a-venue").value = ev.venue || ""; $("a-notes").value = ev.notes || "";
-    $("a-join-open").checked = SET.joinOpen !== false; $("a-ping-open").checked = SET.pingOpen !== false; $("a-greet").checked = SET.showGreetings !== false; $("a-stars").checked = SET.starPins !== false;
-    $("a-hub-name").value = h.name || ""; $("a-lat").value = h.lat; $("a-lon").value = h.lon;
+    $("a-join-open").checked = SET.joinOpen !== false; $("a-ping-open").checked = SET.pingOpen !== false; $("a-spread").value = RS; $("a-spread-v").textContent = "×" + RS; $("a-reach").value = SR; $("a-reach-v").textContent = SR + "%";
+    $("a-greet").checked = SET.showGreetings !== false; $("a-stars").checked = SET.starPins !== false;
+    $("a-hub-name").value = h.name || ""; $("a-lat").value = h.lat; $("a-lon").value = h.lon; $("a-hub-r").value = h.r || LAGOS.r;
     PICK = { lat: +h.lat, lon: +h.lon };
     var items = Array.isArray(SET.program) ? SET.program : [];
     $("a-prog").textContent = "";
@@ -1573,9 +1590,9 @@ window.SUPABASE_CONFIG = {
     saveSettings({
       title: $("a-title").value.trim(), eyebrow: $("a-eyebrow").value.trim(), closing: $("a-closing").value.trim(),
       event: { name: $("a-evname").value.trim(), date: $("a-date").value, time: $("a-time").value, venue: $("a-venue").value.trim(), notes: $("a-notes").value.trim() },
-      hub: { name: $("a-hub-name").value.trim() || "Gathering point", lat: la, lon: lo },
+      hub: { name: $("a-hub-name").value.trim() || LAGOS.name, lat: la, lon: lo, r: Math.max(100, Math.min(5000, parseFloat($("a-hub-r").value) || LAGOS.r)) },
       program: readProgram(), text: readText(),
-      joinOpen: $("a-join-open").checked, pingOpen: $("a-ping-open").checked, showGreetings: $("a-greet").checked, starPins: $("a-stars").checked
+      rippleSpread: parseFloat($("a-spread").value) || 1, soundReach: parseFloat($("a-reach").value) || 100, joinOpen: $("a-join-open").checked, pingOpen: $("a-ping-open").checked, showGreetings: $("a-greet").checked, starPins: $("a-stars").checked
     }, "bar-status").then(function () { fillAdmin(); });
   });
   function addProgRow(it) {
@@ -1611,18 +1628,10 @@ window.SUPABASE_CONFIG = {
     $(id).addEventListener("change", function () { var o = {}; o[key] = this.checked; saveSettings(o, "a-ctl-status"); });
   });
 
-  $("a-flag-btn").addEventListener("click", function () { $("a-flag-file").click(); });
-  $("a-flag-file").addEventListener("change", function () {
-    var f = this.files && this.files[0]; this.value = ""; if (!f) return;
-    setStatus("a-flag-status", "Preparing the picture…");
-    readImage(f, 480, 320, false, 0.85).then(function (d) {
-      return d.length > 90000 ? readImage(f, 360, 240, false, 0.7) : d;
-    }).then(function (d) { return saveSettings({ flag: d }, "a-flag-status").then(function () { $("a-flag-prev").src = d; }); })
-      .catch(function () { setStatus("a-flag-status", "That picture could not be read. Try another one.", true); });
-  });
-  $("a-flag-rm").addEventListener("click", function () {
-    saveSettings({ flag: "" }, "a-flag-status").then(function () { $("a-flag-prev").src = poleDefault().toDataURL("image/png"); });
-  });
+  $("a-spread").addEventListener("input", function () { $("a-spread-v").textContent = "×" + this.value; });
+  $("a-reach").addEventListener("input", function () { $("a-reach-v").textContent = this.value + "%"; });
+  $("a-spread").addEventListener("change", function () { saveSettings({ rippleSpread: parseFloat(this.value) }, "a-ctl-status"); });
+  $("a-reach").addEventListener("change", function () { saveSettings({ soundReach: parseFloat(this.value) }, "a-ctl-status"); });
   function adminPick(lon, lat) {
     PICK = { lon: lon, lat: lat };
     $("a-lat").value = lat.toFixed(4); $("a-lon").value = lon.toFixed(4);
@@ -1657,7 +1666,7 @@ window.SUPABASE_CONFIG = {
     ev.preventDefault();
     var la = parseFloat($("a-lat").value), lo = parseFloat($("a-lon").value);
     if (!isFinite(la) || !isFinite(lo) || la < -58 || la > 84 || lo < -180 || lo > 180) { setStatus("a-hub-status", "Tap the map, or enter a latitude between -58 and 84 and a longitude between -180 and 180.", true); return; }
-    saveSettings({ hub: { name: $("a-hub-name").value.trim() || "Gathering point", lat: la, lon: lo } }, "a-hub-status");
+    saveSettings({ hub: { name: $("a-hub-name").value.trim() || LAGOS.name, lat: la, lon: lo, r: Math.max(100, Math.min(5000, parseFloat($("a-hub-r").value) || LAGOS.r)) } }, "a-hub-status");
   });
 
   function renderAdminList() {
@@ -1670,6 +1679,13 @@ window.SUPABASE_CONFIG = {
       var n = el("div", "n"); n.appendChild(el("div", null, p.name + " · " + c.name));
       if (p.greeting) n.appendChild(el("div", "muted", p.greeting));
       row.appendChild(n);
+      var bo = el("button", "ghost", BOOST[p.id] ? "★ Bigger ripple" : "☆ Bigger ripple"); bo.type = "button";
+      bo.addEventListener("click", function () {
+        var ids = Object.keys(BOOST).filter(function (id) { return pins.some(function (q) { return q.id === id; }); });
+        if (BOOST[p.id]) ids = ids.filter(function (id) { return id !== p.id; }); else ids.push(p.id);
+        saveSettings({ boost: ids }, "h-status").then(renderAdminList);
+      });
+      row.appendChild(bo);
       var d = el("button", null, "Remove"); d.type = "button";
       d.addEventListener("click", function () { hostRpc("host_remove", { p_id: p.id }).then(function () { load(); }).catch(function (e) { setStatus("h-status", failText(e), true); }); });
       row.appendChild(d); box.appendChild(row);
