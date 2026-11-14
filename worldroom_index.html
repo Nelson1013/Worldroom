@@ -1254,7 +1254,8 @@ window.SUPABASE_CONFIG = {
     if (/closed/i.test(m)) return "Joining is closed right now. Please ask the host.";
     if (/invalid/i.test(m)) return "Please check what you entered and try again.";
     if (/host pin/i.test(m)) return "The host PIN was not accepted.";
-    return "Could not reach the map. Check your connection and try again.";
+    var why = m || (e && e.code ? String(e.code) : "");
+    return "Could not reach the map. Check your connection and try again." + (why ? " [" + why.slice(0, 120) + "]" : "");
   }
   $("join-form").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -1430,7 +1431,7 @@ window.SUPABASE_CONFIG = {
     return sb.from("pins").select(PHOTO_OK ? "id,name,cc,greeting,at,has_photo,photo_v" : "id,name,cc,greeting,at").order("at", { ascending: false }).limit(1000)
       .then(function (r) {
         if (r.error && PHOTO_OK && /has_photo|photo_v|column/i.test(String(r.error.message || ""))) { PHOTO_OK = false; return load(); }
-        if (r.error) { noteLive("Could not reach the live map. Retrying."); return; }
+        if (r.error) { noteLive("Could not reach the live map. Retrying. [" + String(r.error.message || r.error.code || "unknown").slice(0, 120) + "]"); return; }
         noteLive("");
         var known = {}; pins.forEach(function (p) { known[p.id] = p; });
         pins = (r.data || []).map(function (x) { return { id: x.id, name: String(x.name || "Guest").slice(0, 40), cc: x.cc, greeting: String(x.greeting || "").slice(0, 120), at: +x.at || 0, hasPhoto: !!x.has_photo, pv: +x.photo_v || 0 }; });
@@ -1447,7 +1448,7 @@ window.SUPABASE_CONFIG = {
         }
         ready = true; render(); loadPhotos();
       })
-      .catch(function () { noteLive("Could not reach the live map. Retrying."); });
+      .catch(function (e) { noteLive("Could not reach the live map. Retrying. [" + String(e && e.message || "network error").slice(0, 120) + "]"); });
   }
   function loadPhotos() {
     if (!PHOTO_OK || photoBusy || !sb) return;
